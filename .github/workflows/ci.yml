@@ -85,3 +85,4 @@ jobs:
             ${{ env.ZIP_NAME_SELFCONTAINED }}
             ${{ env.SETUP_NAME }}
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}

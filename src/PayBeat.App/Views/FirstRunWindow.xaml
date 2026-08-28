@@ -1,0 +1,138 @@
+<Window x:Class="PayBeat.App.Views.FirstRunWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:PayBeat.App.Views.Controls"
+        Title="{DynamicResource FirstRun.Title}"
+        Width="480"
+        Height="560"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="Transparent"
+        FontFamily="Segoe UI"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <Window.Resources>
+        <Style x:Key="SegmentButton" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource SubtextBrush}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bg" Background="{DynamicResource SurfaceBrush}" CornerRadius="8" Padding="18,7">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource GreenBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource BaseBrush}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource SubtextBrush}" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{DynamicResource BaseBrush}"
+            CornerRadius="14"
+            BorderBrush="{DynamicResource OverlayBrush}"
+            BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect Color="#000000" Opacity="0.55" BlurRadius="28" ShadowDepth="0"/>
+        </Border.Effect>
+
+        <StackPanel Margin="30,26">
+
+            <TextBlock Text="PayBeat" Foreground="{DynamicResource GreenBrush}"
+                       FontSize="26" FontWeight="Bold"/>
+            <TextBlock Text="{DynamicResource FirstRun.Title}" Foreground="{DynamicResource TextBrush}"
+                       FontSize="17" FontWeight="SemiBold" Margin="0,8,0,2"/>
+            <TextBlock Text="{DynamicResource FirstRun.Subtitle}" Foreground="{DynamicResource MutedBrush}"
+                       FontSize="12" TextWrapping="Wrap"/>
+
+            <!-- Mode -->
+            <TextBlock Text="{DynamicResource Settings.Mode}" Style="{StaticResource FieldLabel}" Margin="0,22,0,6"/>
+            <StackPanel Orientation="Horizontal">
+                <RadioButton x:Name="ModeMonthly" Content="{DynamicResource Settings.Mode.Monthly}"
+                             Style="{StaticResource SegmentButton}" GroupName="mode" IsChecked="True"/>
+                <RadioButton x:Name="ModeDaily" Content="{DynamicResource Settings.Mode.Daily}"
+                             Style="{StaticResource SegmentButton}" GroupName="mode"/>
+            </StackPanel>
+
+            <!-- Amount -->
+            <TextBlock Text="{DynamicResource Settings.Amount}" Style="{StaticResource FieldLabel}" Margin="0,14,0,6"/>
+            <Grid MaxWidth="260" HorizontalAlignment="Left">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="52"/>
+                    <ColumnDefinition Width="6"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Text="¥" IsReadOnly="True" TextAlignment="Center"
+                         Background="{DynamicResource SurfaceBrush}"
+                         Foreground="{DynamicResource MutedBrush}"
+                         BorderBrush="{DynamicResource OverlayBrush}" BorderThickness="1" Padding="9,8"/>
+                <TextBox x:Name="AmountBox" Grid.Column="2" Text="6000" MaxLength="11" TextAlignment="Right"
+                         Background="{DynamicResource SurfaceBrush}"
+                         Foreground="{DynamicResource TextBrush}"
+                         BorderBrush="{DynamicResource OverlayBrush}" BorderThickness="1" Padding="9,8"/>
+            </Grid>
+
+            <!-- Work week -->
+            <TextBlock Text="{DynamicResource Settings.WeekPolicy}" Style="{StaticResource FieldLabel}" Margin="0,14,0,6"/>
+            <StackPanel Orientation="Horizontal">
+                <RadioButton x:Name="WeekDouble" Content="{DynamicResource Settings.Week.Double}"
+                             Style="{StaticResource SegmentButton}" GroupName="week" IsChecked="True"/>
+                <RadioButton x:Name="WeekSingle" Content="{DynamicResource Settings.Week.Single}"
+                             Style="{StaticResource SegmentButton}" GroupName="week"/>
+                <RadioButton x:Name="WeekCustom" Content="{DynamicResource Settings.Week.Custom}"
+                             Style="{StaticResource SegmentButton}" GroupName="week"/>
+            </StackPanel>
+
+            <!-- Work times -->
+            <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{DynamicResource Settings.WorkHours}" Style="{StaticResource FieldLabel}" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <controls:TimePickerControl x:Name="StartTime"/>
+                    <TextBlock Text="–" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Margin="6,0"/>
+                    <controls:TimePickerControl x:Name="EndTime"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Lunch -->
+            <Grid Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <CheckBox x:Name="LunchCheck" Content="{DynamicResource FirstRun.Lunch}"
+                          Foreground="{DynamicResource TextBrush}" FontSize="12" Cursor="Hand" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" IsEnabled="{Binding IsChecked, ElementName=LunchCheck}">
+                    <controls:TimePickerControl x:Name="LunchStartTime"/>
+                    <TextBlock Text="–" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Margin="5,0"/>
+                    <controls:TimePickerControl x:Name="LunchEndTime"/>
+                </StackPanel>
+            </Grid>
+
+            <TextBlock x:Name="ErrorText" Foreground="{DynamicResource RedBrush}" FontSize="11"
+                       Margin="0,10,0,0" TextWrapping="Wrap"/>
+
+            <Button Content="{DynamicResource FirstRun.Start}" Click="OnStart" Margin="0,20,0,0"
+                    Padding="0,11" HorizontalAlignment="Stretch"
+                    Background="{DynamicResource GreenBrush}" Foreground="{DynamicResource BaseBrush}"
+                    FontWeight="SemiBold" FontSize="14"/>
+        </StackPanel>
+    </Border>
+</Window>

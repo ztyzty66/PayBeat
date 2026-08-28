@@ -10,17 +10,41 @@
     <sys:String x:Key="Menu.Flex">Flex</sys:String>
     <sys:String x:Key="Menu.Settings">Settings</sys:String>
     <sys:String x:Key="Menu.About">About</sys:String>
+    <sys:String x:Key="Menu.Detail">Details</sys:String>
     <sys:String x:Key="Menu.Exit">Exit</sys:String>
 
-    <!-- Normal view labels -->
+    <!-- Widget -->
+    <sys:String x:Key="View.EarnedToday">Earned today</sys:String>
+    <sys:String x:Key="View.Worked">Worked</sys:String>
+    <sys:String x:Key="View.UntilEnd">Until end</sys:String>
     <sys:String x:Key="View.WorkStart">Start </sys:String>
     <sys:String x:Key="View.WorkEnd">End </sys:String>
-    <sys:String x:Key="View.DailySalary">Daily</sys:String>
-
-    <!-- Flex view labels -->
-    <sys:String x:Key="View.Elapsed">Elapsed</sys:String>
+    <sys:String x:Key="View.DailySalary">Daily rate</sys:String>
+    <sys:String x:Key="View.Elapsed">Worked</sys:String>
     <sys:String x:Key="View.Remaining">Remaining</sys:String>
-    <sys:String x:Key="View.WorkWindow">Work Hours</sys:String>
+    <sys:String x:Key="View.WorkWindow">Work window</sys:String>
+    <sys:String x:Key="View.MonthProgress">Month progress</sys:String>
+    <sys:String x:Key="View.MonthEarned">Earned this month</sys:String>
+    <sys:String x:Key="View.MonthExpected">Expected this month</sys:String>
+    <sys:String x:Key="View.StandardMonthly">Standard monthly</sys:String>
+    <sys:String x:Key="View.WorkdaysProgress">Workday progress</sys:String>
+    <sys:String x:Key="View.Days">days</sys:String>
+    <sys:String x:Key="View.LeaveHours">Leave hours</sys:String>
+    <sys:String x:Key="View.Hours">h</sys:String>
+    <sys:String x:Key="View.PtoDays">PTO days</sys:String>
+    <sys:String x:Key="View.Expected">Expected</sys:String>
+
+    <!-- Day status -->
+    <sys:String x:Key="Status.Working">Earning</sys:String>
+    <sys:String x:Key="Status.Lunch">Lunch break</sys:String>
+    <sys:String x:Key="Status.ResumeAt">Resumes at {0}</sys:String>
+    <sys:String x:Key="Status.Done">Day complete</sys:String>
+    <sys:String x:Key="Status.Rest">Day off</sys:String>
+    <sys:String x:Key="Status.Holiday">Public holiday</sys:String>
+    <sys:String x:Key="Status.Pto">Paid time off</sys:String>
+    <sys:String x:Key="Status.Leave">On leave</sys:String>
+    <sys:String x:Key="Status.BeforeWork">Before work</sys:String>
+    <sys:String x:Key="Status.UntilStart">Starts in {0} min</sys:String>
 
     <!-- Settings window -->
     <sys:String x:Key="Settings.WindowTitle">PayBeat Settings</sys:String>
@@ -28,79 +52,165 @@
     <sys:String x:Key="Settings.Cancel">Cancel</sys:String>
     <sys:String x:Key="Settings.Save">Save</sys:String>
 
-    <!-- Salary tab -->
+    <!-- Nav -->
     <sys:String x:Key="Settings.Tab.Salary">Salary</sys:String>
-    <sys:String x:Key="Settings.Section.Salary">SALARY</sys:String>
-    <sys:String x:Key="Settings.Section.Schedule">WORK SCHEDULE</sys:String>
-    <sys:String x:Key="Settings.Section.Refresh">REFRESH</sys:String>
-    <sys:String x:Key="Settings.DailySalary">Daily Salary</sys:String>
-    <sys:String x:Key="Settings.WorkHours">Work Hours</sys:String>
-    <sys:String x:Key="Settings.RefreshInterval">Refresh Interval</sys:String>
-    <sys:String x:Key="Settings.Seconds"> s</sys:String>
-    <sys:String x:Key="Settings.LunchBreakEnabled">Deduct Lunch Break</sys:String>
-    <sys:String x:Key="Settings.LunchBreakStart">Break Start</sys:String>
-    <sys:String x:Key="Settings.LunchBreakEnd">Break End</sys:String>
-    <sys:String x:Key="Settings.WorkOnWeekends">Earn on Weekends</sys:String>
-
-    <!-- Notifications tab -->
-    <sys:String x:Key="Settings.Tab.Notifications">Notifications</sys:String>
-    <sys:String x:Key="Settings.EnableEndOfDayReminder">End-of-Day Reminder</sys:String>
-    <sys:String x:Key="Settings.EndOfDayReminderMinutes">Minutes Before Work End</sys:String>
-    <sys:String x:Key="Settings.EnableMilestoneNotifications">Milestone Notifications</sys:String>
-    <sys:String x:Key="Settings.MilestoneAmount">Notify Every</sys:String>
-
-    <!-- Display tab -->
+    <sys:String x:Key="Settings.Tab.Calendar">Calendar</sys:String>
     <sys:String x:Key="Settings.Tab.Display">Display</sys:String>
-    <sys:String x:Key="Settings.DisplayMode">Display Mode</sys:String>
+    <sys:String x:Key="Settings.Tab.System">System</sys:String>
+
+    <!-- Salary page -->
+    <sys:String x:Key="Settings.Section.Basic">Basics</sys:String>
+    <sys:String x:Key="Settings.Mode">Salary mode</sys:String>
+    <sys:String x:Key="Settings.Mode.Monthly">Monthly</sys:String>
+    <sys:String x:Key="Settings.Mode.Daily">Daily</sys:String>
+    <sys:String x:Key="Settings.Amount">Amount</sys:String>
+    <sys:String x:Key="Settings.WeekPolicy">Work week</sys:String>
+    <sys:String x:Key="Settings.Week.Double">2-day rest</sys:String>
+    <sys:String x:Key="Settings.Week.Single">1-day rest</sys:String>
+    <sys:String x:Key="Settings.Week.Custom">Custom</sys:String>
+    <sys:String x:Key="Settings.RestDays">Rest days</sys:String>
+    <sys:String x:Key="Settings.Section.Schedule">Schedule</sys:String>
+    <sys:String x:Key="Settings.CurrentSchedule">Current schedule</sys:String>
+    <sys:String x:Key="Settings.ManageSchedules">Manage schedules</sys:String>
+    <sys:String x:Key="Settings.EffectiveFrom">Effective from</sys:String>
+    <sys:String x:Key="Settings.SaveFromTodayHint">Salary and schedule changes take effect today; history stays untouched</sys:String>
+    <sys:String x:Key="Settings.WorkHours">Work hours</sys:String>
+    <sys:String x:Key="Settings.RefreshInterval">Refresh interval</sys:String>
+    <sys:String x:Key="Settings.Seconds"> s</sys:String>
+    <sys:String x:Key="Settings.LunchBreakEnabled">Deduct lunch break</sys:String>
+    <sys:String x:Key="Settings.LunchBreakStart">Lunch start</sys:String>
+    <sys:String x:Key="Settings.LunchBreakEnd">Lunch end</sys:String>
+    <sys:String x:Key="Settings.WorkOnWeekends">Also earn on weekends</sys:String>
+    <sys:String x:Key="Salary.DefaultScheduleName">Default schedule</sys:String>
+
+    <!-- Schedule manager -->
+    <sys:String x:Key="Schedule.Title">Work Schedules</sys:String>
+    <sys:String x:Key="Schedule.New">New schedule</sys:String>
+    <sys:String x:Key="Schedule.Edit">Edit</sys:String>
+    <sys:String x:Key="Schedule.Delete">Delete</sys:String>
+    <sys:String x:Key="Schedule.Name">Name</sys:String>
+    <sys:String x:Key="Schedule.ApplyFrom">Effective from</sys:String>
+    <sys:String x:Key="Schedule.Active">In use</sys:String>
+    <sys:String x:Key="Schedule.DeleteDisabled">The schedule in use cannot be deleted</sys:String>
+    <sys:String x:Key="Schedule.ConfirmDelete">Delete schedule "{0}"?</sys:String>
+    <sys:String x:Key="Schedule.Close">Close</sys:String>
+
+    <!-- Calendar page -->
+    <sys:String x:Key="Day.Mon">Mo</sys:String>
+    <sys:String x:Key="Day.Tue">Tu</sys:String>
+    <sys:String x:Key="Day.Wed">We</sys:String>
+    <sys:String x:Key="Day.Thu">Th</sys:String>
+    <sys:String x:Key="Day.Fri">Fr</sys:String>
+    <sys:String x:Key="Day.Sat">Sa</sys:String>
+    <sys:String x:Key="Day.Sun">Su</sys:String>
+    <sys:String x:Key="Calendar.Legend.Work">Workday</sys:String>
+    <sys:String x:Key="Calendar.Legend.Rest">Rest day</sys:String>
+    <sys:String x:Key="Calendar.Legend.Holiday">Public holiday</sys:String>
+    <sys:String x:Key="Calendar.Legend.Makeup">Makeup workday</sys:String>
+    <sys:String x:Key="Calendar.Legend.Pto">Paid time off</sys:String>
+    <sys:String x:Key="Calendar.Legend.Leave">Leave</sys:String>
+    <sys:String x:Key="Calendar.ClickHint">Click a date to set its status</sys:String>
+    <sys:String x:Key="Calendar.Prev">Previous month</sys:String>
+    <sys:String x:Key="Calendar.Next">Next month</sys:String>
+    <sys:String x:Key="Calendar.Today">Today</sys:String>
+    <sys:String x:Key="Calendar.Title">{0}/{1}</sys:String>
+    <sys:String x:Key="Calendar.DayEditor">Day {0}/{1}</sys:String>
+    <sys:String x:Key="Calendar.Status.Normal">Work</sys:String>
+    <sys:String x:Key="Calendar.Status.Rest">Rest</sys:String>
+    <sys:String x:Key="Calendar.Status.Holiday">Public holiday</sys:String>
+    <sys:String x:Key="Calendar.Status.Makeup">Makeup work</sys:String>
+    <sys:String x:Key="Calendar.Status.Pto">Paid time off</sys:String>
+    <sys:String x:Key="Calendar.Status.Leave">Leave</sys:String>
+    <sys:String x:Key="Calendar.Leave.Full">Full day</sys:String>
+    <sys:String x:Key="Calendar.Leave.Morning">Morning</sys:String>
+    <sys:String x:Key="Calendar.Leave.Afternoon">Afternoon</sys:String>
+    <sys:String x:Key="Calendar.Leave.Hours">By hours</sys:String>
+    <sys:String x:Key="Calendar.Clear">Reset to auto</sys:String>
+    <sys:String x:Key="Calendar.AutoNote">Dates without manual settings follow official holidays and the work week</sys:String>
+
+    <!-- Notifications -->
+    <sys:String x:Key="Settings.Tab.Notifications">Alerts</sys:String>
+    <sys:String x:Key="Settings.EnableEndOfDayReminder">End-of-day reminder</sys:String>
+    <sys:String x:Key="Settings.EndOfDayReminderMinutes">Minutes before end</sys:String>
+    <sys:String x:Key="Settings.EnableMilestoneNotifications">Earnings milestones</sys:String>
+    <sys:String x:Key="Settings.MilestoneAmount">Every</sys:String>
+
+    <!-- Display page -->
+    <sys:String x:Key="Settings.DisplayMode">Display mode</sys:String>
     <sys:String x:Key="Settings.Normal">Normal</sys:String>
     <sys:String x:Key="Settings.Mini">Mini</sys:String>
     <sys:String x:Key="Settings.None">None</sys:String>
     <sys:String x:Key="Settings.Flex">Flex</sys:String>
     <sys:String x:Key="Settings.Opacity">Opacity</sys:String>
-    <sys:String x:Key="Settings.AlwaysOnTop">Always on Top</sys:String>
-
-    <!-- System tab -->
-    <sys:String x:Key="Settings.Tab.System">System</sys:String>
-    <sys:String x:Key="Settings.RunAtStartup">Run at Startup</sys:String>
-    <sys:String x:Key="Settings.Language">Language</sys:String>
-    <sys:String x:Key="Settings.LanguageAuto">Auto</sys:String>
+    <sys:String x:Key="Settings.AlwaysOnTop">Always on top</sys:String>
     <sys:String x:Key="Settings.Theme">Theme</sys:String>
     <sys:String x:Key="Settings.ThemeAuto">Auto</sys:String>
     <sys:String x:Key="Settings.ThemeLight">Light</sys:String>
     <sys:String x:Key="Settings.ThemeDark">Dark</sys:String>
-    <sys:String x:Key="Settings.Hotkey">Toggle Visibility Hotkey</sys:String>
+
+    <!-- System page -->
+    <sys:String x:Key="Settings.RunAtStartup">Run at startup</sys:String>
+    <sys:String x:Key="Settings.Language">Language</sys:String>
+    <sys:String x:Key="Settings.LanguageAuto">Auto</sys:String>
+    <sys:String x:Key="Settings.Hotkey">Show/hide hotkey</sys:String>
     <sys:String x:Key="Settings.HotkeyHint">Click, then press a key combination</sys:String>
     <sys:String x:Key="Settings.HotkeyCapturing">Press a key combination...</sys:String>
+    <sys:String x:Key="Settings.Section.About">About</sys:String>
+    <sys:String x:Key="Settings.BasedOn">Based on PayBeat · original project by coldhighsun · MIT License</sys:String>
+    <sys:String x:Key="Settings.OpenOriginal">Visit original project</sys:String>
 
     <!-- About window -->
     <sys:String x:Key="About.WindowTitle">About PayBeat</sys:String>
-    <sys:String x:Key="About.Description">A lightweight floating widget that shows your real-time earnings as the workday ticks by.</sys:String>
+    <sys:String x:Key="About.Description">A lightweight floating widget that shows your earnings in real time.</sys:String>
     <sys:String x:Key="About.Author">Author</sys:String>
     <sys:String x:Key="About.License">License</sys:String>
     <sys:String x:Key="About.GitHub">GitHub</sys:String>
     <sys:String x:Key="About.Close">Close</sys:String>
-    <sys:String x:Key="About.Update.Checking">Checking for updates...</sys:String>
-    <sys:String x:Key="About.Update.UpToDate">You're up to date</sys:String>
-    <sys:String x:Key="About.Update.Available">Update available: v{0}</sys:String>
+    <sys:String x:Key="About.BasedOn">Based on PayBeat by coldhighsun (MIT)</sys:String>
+    <sys:String x:Key="About.Version">Version</sys:String>
+
+    <!-- First run -->
+    <sys:String x:Key="FirstRun.Title">Welcome to PayBeat</sys:String>
+    <sys:String x:Key="FirstRun.Subtitle">A few quick settings, then watch today's earnings grow</sys:String>
+    <sys:String x:Key="FirstRun.Start">Get started</sys:String>
+    <sys:String x:Key="FirstRun.Lunch">Lunch break (unpaid)</sys:String>
+
+    <!-- Detail window -->
+    <sys:String x:Key="Detail.Title">Details</sys:String>
+    <sys:String x:Key="Detail.Tab.Today">Today</sys:String>
+    <sys:String x:Key="Detail.Tab.Month">Month</sys:String>
+    <sys:String x:Key="Detail.MonthOverview">This month</sys:String>
+    <sys:String x:Key="Detail.CurrentSchedule">Current schedule</sys:String>
+    <sys:String x:Key="Detail.History">History</sys:String>
+    <sys:String x:Key="Detail.NoHistory">No history yet</sys:String>
+    <sys:String x:Key="Detail.StandardSalary">Standard salary</sys:String>
+    <sys:String x:Key="Detail.FinalEarned">Final total</sys:String>
+    <sys:String x:Key="Detail.Workdays">Workdays</sys:String>
+    <sys:String x:Key="Detail.ScheduleUsed">Schedule used</sys:String>
+    <sys:String x:Key="Detail.PolicyUsed">Work week</sys:String>
+    <sys:String x:Key="Detail.SpecialDays">Special days</sys:String>
 
     <!-- Validation errors -->
-    <sys:String x:Key="Error.SalaryPositive">Daily salary must be greater than 0</sys:String>
-    <sys:String x:Key="Error.SalaryTooLarge">Daily salary cannot exceed 99,999,999</sys:String>
-    <sys:String x:Key="Error.WorkEndAfterStart">Work end must be later than work start</sys:String>
+    <sys:String x:Key="Error.SalaryPositive">Amount must be greater than 0</sys:String>
+    <sys:String x:Key="Error.SalaryTooLarge">Amount cannot exceed 99,999,999</sys:String>
+    <sys:String x:Key="Error.WorkEndAfterStart">End time must be after start time (overnight shifts are not supported)</sys:String>
     <sys:String x:Key="Error.AlreadyRunning">PayBeat is already running.</sys:String>
-    <sys:String x:Key="Error.HotkeyConflict">Failed to register hotkey {0}. It may already be in use by another application.</sys:String>
-    <sys:String x:Key="Error.LunchBreakInvalid">Lunch break must fall within work hours and end after it starts</sys:String>
+    <sys:String x:Key="Error.HotkeyConflict">Failed to register hotkey {0}; it may be in use by another program.</sys:String>
+    <sys:String x:Key="Error.LunchBreakInvalid">Lunch break must be inside the work window, and end after it starts</sys:String>
     <sys:String x:Key="Error.MilestoneAmountPositive">Milestone amount must be greater than 0</sys:String>
-    <sys:String x:Key="Error.MilestoneAmountTooLarge">Milestone amount cannot exceed the daily salary</sys:String>
+    <sys:String x:Key="Error.MilestoneAmountTooLarge">Milestone amount cannot exceed the daily rate</sys:String>
     <sys:String x:Key="Error.EndOfDayReminderMinutesInvalid">Reminder minutes must be an integer between 1 and 60</sys:String>
+    <sys:String x:Key="Error.ScheduleNameRequired">Please enter a schedule name</sys:String>
+    <sys:String x:Key="Error.ScheduleOverlap">Conflicting effective dates; please adjust them</sys:String>
+    <sys:String x:Key="Error.WorkDayRequired">At least one working day is required per week</sys:String>
 
     <!-- Tray notifications -->
     <sys:String x:Key="Tray.HiddenTooltip">I love work!</sys:String>
-    <sys:String x:Key="Notification.MilestoneTitle">Earnings Milestone</sys:String>
+    <sys:String x:Key="Notification.MilestoneTitle">Earnings milestone</sys:String>
     <sys:String x:Key="Notification.MilestoneBody">You've earned {0} today!</sys:String>
-    <sys:String x:Key="Notification.EndOfDayTitle">Almost Done</sys:String>
-    <sys:String x:Key="Notification.EndOfDayBody">Work ends in {0} minutes.</sys:String>
-    <sys:String x:Key="Notification.UpdateAvailableTitle">Update Available</sys:String>
-    <sys:String x:Key="Notification.UpdateAvailableBody">PayBeat v{0} is available. Open About to download it.</sys:String>
+    <sys:String x:Key="Notification.EndOfDayTitle">Almost there</sys:String>
+    <sys:String x:Key="Notification.EndOfDayBody">{0} minutes until the end of the workday.</sys:String>
+    <sys:String x:Key="Notification.UpdateAvailableTitle">Update available</sys:String>
+    <sys:String x:Key="Notification.UpdateAvailableBody">PayBeat v{0} has been released; open "About" to download.</sys:String>
 
 </ResourceDictionary>

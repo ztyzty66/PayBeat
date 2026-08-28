@@ -1,0 +1,104 @@
+<Window x:Class="PayBeat.App.Views.DayEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:PayBeat.App.Views.Controls"
+        Title="{DynamicResource Calendar.ClickHint}"
+        Width="340"
+        SizeToContent="Height"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        Background="Transparent"
+        FontFamily="Segoe UI"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <Window.Resources>
+        <Style x:Key="OptionButton" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource SubtextBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bg"
+                                Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="7"
+                                Padding="12,6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource TagWorkBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource GreenBrush}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{DynamicResource BaseBrush}"
+            CornerRadius="12"
+            BorderBrush="{DynamicResource OverlayBrush}"
+            BorderThickness="1"
+            Padding="20,16">
+        <Border.Effect>
+            <DropShadowEffect Color="#000000" Opacity="0.5" BlurRadius="22" ShadowDepth="0"/>
+        </Border.Effect>
+
+        <StackPanel>
+
+            <!-- Title -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                           Foreground="{DynamicResource GreenBrush}" VerticalAlignment="Center"/>
+                <TextBlock x:Name="EditorTitle" Margin="8,0,0,0"
+                           Foreground="{DynamicResource TextBrush}"
+                           FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Status options -->
+            <UniformGrid Columns="3">
+                <RadioButton x:Name="StatusWork" Content="{DynamicResource Calendar.Status.Normal}" Style="{StaticResource OptionButton}" GroupName="status" IsChecked="True" Checked="OnStatusChanged"/>
+                <RadioButton x:Name="StatusRest" Content="{DynamicResource Calendar.Status.Rest}" Style="{StaticResource OptionButton}" GroupName="status" Checked="OnStatusChanged"/>
+                <RadioButton x:Name="StatusHoliday" Content="{DynamicResource Calendar.Status.Holiday}" Style="{StaticResource OptionButton}" GroupName="status" Checked="OnStatusChanged"/>
+                <RadioButton x:Name="StatusMakeup" Content="{DynamicResource Calendar.Status.Makeup}" Style="{StaticResource OptionButton}" GroupName="status" Checked="OnStatusChanged"/>
+                <RadioButton x:Name="StatusPto" Content="{DynamicResource Calendar.Status.Pto}" Style="{StaticResource OptionButton}" GroupName="status" Checked="OnStatusChanged"/>
+                <RadioButton x:Name="StatusLeave" Content="{DynamicResource Calendar.Status.Leave}" Style="{StaticResource OptionButton}" GroupName="status" Checked="OnStatusChanged"/>
+            </UniformGrid>
+
+            <!-- Leave detail -->
+            <StackPanel x:Name="LeavePanel" Visibility="Collapsed" Margin="0,8,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton x:Name="LeaveFull" Content="{DynamicResource Calendar.Leave.Full}" Style="{StaticResource OptionButton}" GroupName="leave" IsChecked="True" Checked="OnLeaveKindChanged"/>
+                    <RadioButton x:Name="LeaveMorning" Content="{DynamicResource Calendar.Leave.Morning}" Style="{StaticResource OptionButton}" GroupName="leave" Checked="OnLeaveKindChanged"/>
+                    <RadioButton x:Name="LeaveAfternoon" Content="{DynamicResource Calendar.Leave.Afternoon}" Style="{StaticResource OptionButton}" GroupName="leave" Checked="OnLeaveKindChanged"/>
+                    <RadioButton x:Name="LeaveHoursOption" Content="{DynamicResource Calendar.Leave.Hours}" Style="{StaticResource OptionButton}" GroupName="leave" Checked="OnLeaveKindChanged"/>
+                </StackPanel>
+                <StackPanel x:Name="LeaveHoursPanel" Orientation="Horizontal" Visibility="Collapsed" Margin="0,4,0,0">
+                    <controls:TimePickerControl x:Name="LeaveStart"/>
+                    <TextBlock Text="–" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Margin="6,0"/>
+                    <controls:TimePickerControl x:Name="LeaveEnd"/>
+                </StackPanel>
+            </StackPanel>
+
+            <TextBlock Text="{DynamicResource Calendar.AutoNote}"
+                       Foreground="{DynamicResource MutedBrush}" FontSize="11"
+                       TextWrapping="Wrap" Margin="0,10,0,12"/>
+
+            <!-- Buttons -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="{DynamicResource Calendar.Clear}" Click="OnClear" Padding="14,7"
+                        Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource TextBrush}" Margin="0,0,8,0"/>
+                <Button Content="{DynamicResource Settings.Cancel}" Click="OnCancel" Padding="14,7"
+                        Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource TextBrush}" Margin="0,0,8,0"/>
+                <Button Content="{DynamicResource Settings.Save}" Click="OnSave" Padding="16,7"
+                        Background="{DynamicResource GreenBrush}" Foreground="{DynamicResource BaseBrush}" FontWeight="SemiBold"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

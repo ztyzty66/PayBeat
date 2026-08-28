@@ -1,16 +1,25 @@
+using PayBeat.App.Domain;
 using PayBeat.App.Models;
 
 namespace PayBeat.App.Services;
 
 /// <summary>
 /// Loads and saves <see cref="SalarySettings"/> as JSON at <c>%APPDATA%\PayBeat\settings.json</c>.
-/// Returns default settings when the file is absent or unreadable.
+/// Returns default settings when the file is absent or unreadable. Legacy (v1) flat settings —
+/// daily salary, work times, lunch break, weekend flag — are migrated once into the versioned
+/// profile model (v2) on load; the legacy fields remain in the JSON for backward compatibility.
 /// </summary>
 public class SettingsService
 {
     private static readonly string FilePath =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                      "PayBeat", "settings.json");
+
+    private static readonly string DirectoryPath =
+        Path.GetDirectoryName(FilePath)!;
+
+    /// <summary>Exposes the settings directory for sibling stores (history snapshots).</summary>
+    public static string SettingsDirectory => DirectoryPath;
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -20,8 +29,8 @@ public class SettingsService
     };
 
     /// <summary>
-    /// Reads settings from disk. Returns a default <see cref="SalarySettings"/> instance
-    /// if the file does not exist or cannot be deserialized.
+    /// Reads settings from disk, applying the legacy→v2 migration when needed. Returns a default
+    /// <see cref="SalarySettings"/> if the file does not exist or cannot be deserialized.
     /// </summary>
     public SalarySettings Load()
     {
@@ -32,7 +41,8 @@ public class SettingsService
         try
         {
             var json = File.ReadAllText(FilePath);
-            return JsonSerializer.Deserialize<SalarySettings>(json, Options) ?? new SalarySettings();
+            var settings = JsonSerializer.Deserialize<SalarySettings>(json, Options) ?? new SalarySettings();
+            return Migrate(settings);
         }
         catch
         {
@@ -47,8 +57,60 @@ public class SettingsService
     /// <param name="settings">Settings to persist.</param>
     public void Save(SalarySettings settings)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-        File.WriteAllText(FilePath, JsonSerializer.Serialize(settings, Options));
+        Directory.CreateDirectory(DirectoryPath);
+        File.WriteAllText(FilePath, JsonSerializer.Serialize(settings with { ConfigVersion = 2 }, Options));
+    }
+
+    /// <summary>
+    /// Upgrades legacy flat settings (ConfigVersion &lt; 2) to the versioned model:
+    /// daily salary → a Daily-mode salary profile; work window + lunch → a schedule profile;
+    /// weekend flag → a week policy. Idempotent: already-migrated settings pass through unchanged.
+    /// </summary>
+    public static SalarySettings Migrate(SalarySettings s)
+    {
+        if (s.ConfigVersion >= 2)
+        {
+            return s;
+        }
+
+        var salaryProfile = new SalaryProfile
+        {
+            Mode = SalaryMode.Daily,
+            DailyAmount = s.DailySalary,
+            MonthlyAmount = 0m,
+            EffectiveFrom = new DateOnly(2000, 1, 1),
+        };
+
+        var schedule = new WorkScheduleProfile
+        {
+            Id = PayConfiguration.DefaultScheduleId,
+            Name = s.LegacyScheduleName,
+            WorkStart = s.WorkStart,
+            WorkEnd = s.WorkEnd,
+            LunchBreakEnabled = s.LunchBreakEnabled,
+            LunchBreakStart = s.LunchBreakStart,
+            LunchBreakEnd = s.LunchBreakEnd,
+            EffectiveFrom = new DateOnly(2000, 1, 1),
+        };
+
+        var policy = s.WorkOnWeekends
+            ? new WorkWeekPolicy
+            {
+                Type = WorkWeekType.Custom,
+                WorkDays = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday],
+                EffectiveFrom = new DateOnly(2000, 1, 1),
+            }
+            : WorkWeekPolicy.Create(WorkWeekType.DoubleRest, new DateOnly(2000, 1, 1));
+
+        return s with
+        {
+            ConfigVersion = 2,
+            SalaryProfiles = [salaryProfile],
+            ScheduleProfiles = [schedule],
+            WeekPolicies = [policy],
+            SetupCompleted = true,
+            LegacyScheduleName = s.LegacyScheduleName,
+        };
     }
 
     /// <summary>

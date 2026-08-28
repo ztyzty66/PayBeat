@@ -6,44 +6,20 @@ using System.Windows.Navigation;
 namespace PayBeat.App.Views;
 
 /// <summary>
-/// Displays app version, author, and license information, and checks for updates on open.
+/// Displays app version plus attribution for the original project. Update checks against the
+/// upstream repository are intentionally disabled in this fork build, so users are never
+/// prompted to "update" back over this version.
 /// </summary>
 public partial class AboutWindow
 {
     private readonly SettingsService _settingsService;
 
-    /// <summary>
-    /// Initializes the about window, populates the version label, and starts an update check.
-    /// </summary>
+    /// <summary>Initializes the about window and populates the version label.</summary>
     public AboutWindow(SettingsService settingsService)
     {
         _settingsService = settingsService;
         InitializeComponent();
-        VersionText.Text = $"v{AppVersion.Current}";
-        UpdateStatusText.Text = LocalizationService.Get("About.Update.Checking");
-        _ = CheckForUpdatesAsync();
-    }
-
-    private async Task CheckForUpdatesAsync()
-    {
-        var info = await new UpdateCheckService().GetLatestReleaseAsync();
-        _settingsService.Save(_settingsService.Load() with
-        {
-            LastUpdateCheckUtc = DateTimeOffset.UtcNow
-        });
-
-        if (info != null)
-        {
-            UpdateStatusText.Text = string.Empty;
-            UpdateStatusLink.NavigateUri = new Uri(info.HtmlUrl);
-            UpdateStatusLink.Inlines.Clear();
-            UpdateStatusLink.Inlines.Add(string.Format(LocalizationService.Get("About.Update.Available"), info.Version));
-            UpdateStatusLinkContainer.Visibility = Visibility.Visible;
-        }
-        else
-        {
-            UpdateStatusText.Text = LocalizationService.Get("About.Update.UpToDate");
-        }
+        VersionText.Text = $"{LocalizationService.Get("About.Version")} v{AppVersion.Current}";
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)

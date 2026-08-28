@@ -78,7 +78,16 @@ public partial class App
         }
 
         _trayIconService = new TrayIconService(_mainVm!, ActivateMainWindow);
-        CheckForUpdatesOnStartup(settings);
+
+        // First run: guide the user through the initial setup before showing numbers.
+        if (!settings.SetupCompleted)
+        {
+            var firstRun = new FirstRunWindow(_settingsService!)
+            {
+                Owner = _mainWindow,
+            };
+            firstRun.Show();
+        }
     }
 
     // Run restore after first render because clamping depends on measured window size.
@@ -160,31 +169,6 @@ public partial class App
         _mainWindow.PlayAttentionAnimation();
     }
 
-    /// <summary>
-    /// Fires a best-effort, fire-and-forget update check, throttled to once per 24 hours via
-    /// <see cref="SalarySettings.LastUpdateCheckUtc"/>.
-    /// </summary>
-    private void CheckForUpdatesOnStartup(SalarySettings settings)
-    {
-        if (settings.LastUpdateCheckUtc is { } last && DateTimeOffset.UtcNow - last < TimeSpan.FromHours(24))
-        {
-            return;
-        }
-
-        _ = Task.Run(async () =>
-        {
-            var info = await new UpdateCheckService().GetLatestReleaseAsync();
-            _settingsService!.Save(_settingsService.Load() with
-            {
-                LastUpdateCheckUtc = DateTimeOffset.UtcNow
-            });
-            if (info != null)
-            {
-                Dispatcher.Invoke(() => _mainVm!.NotifyUpdateAvailable(info.Version));
-            }
-        });
-    }
-
     private void CreateMainViewModelAndWindow()
     {
         _mainVm = new MainViewModel(_settingsService!);
@@ -205,14 +189,19 @@ public partial class App
         return settings;
     }
 
+    private bool _hotkeyConflictWarned;
+
     private void OnHotkeySettingsChanged()
     {
         var s = _settingsService!.Load();
         if (_hotkeyService != null)
         {
             var registered = _hotkeyService.Update(s.HotkeyModifiers, s.HotkeyVirtualKey);
-            if (!registered)
+            if (!registered && !_hotkeyConflictWarned)
             {
+                // Re-registration happens on every settings save; warn once per session so a
+                // conflicting hotkey doesn't spam dialogs during normal use.
+                _hotkeyConflictWarned = true;
                 var key = HotkeyService.Format(s.HotkeyModifiers, s.HotkeyVirtualKey);
                 MessageBox.Show(
                     string.Format((string)FindResource("Error.HotkeyConflict")!, key),
@@ -223,6 +212,9 @@ public partial class App
         }
     }
 
+    /// <summary>
+    /// Fires when the widget window content has rendered, applying startup placement.
+    /// </summary>
     private void OnMainWindowContentRendered(object? sender, EventArgs e)
     {
         if (_mainWindow == null || _startupSettings == null)

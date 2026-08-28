@@ -74,21 +74,14 @@
                            FontSize="12"
                            HorizontalAlignment="Center"
                            Margin="0,4,0,0"/>
-                <TextBlock x:Name="UpdateStatusText"
+                <TextBlock x:Name="BasedOnText"
+                           Text="{DynamicResource About.BasedOn}"
                            Foreground="{DynamicResource MutedBrush}"
-                           FontSize="11"
+                           FontSize="10"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
                            HorizontalAlignment="Center"
-                           Margin="0,4,0,0"/>
-                <TextBlock x:Name="UpdateStatusLinkContainer"
-                           Visibility="Collapsed"
-                           FontSize="11"
-                           HorizontalAlignment="Center"
-                           Margin="0,4,0,0">
-                    <Hyperlink x:Name="UpdateStatusLink"
-                               Foreground="{DynamicResource BlueBrush}"
-                               TextDecorations="None"
-                               RequestNavigate="GitHubLink_RequestNavigate"/>
-                </TextBlock>
+                           Margin="0,6,0,0"/>
             </StackPanel>
 
             <!-- Description -->

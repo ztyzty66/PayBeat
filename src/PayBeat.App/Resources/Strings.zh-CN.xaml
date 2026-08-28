@@ -10,17 +10,41 @@
     <sys:String x:Key="Menu.Flex">显摆</sys:String>
     <sys:String x:Key="Menu.Settings">设置</sys:String>
     <sys:String x:Key="Menu.About">关于</sys:String>
+    <sys:String x:Key="Menu.Detail">详情</sys:String>
     <sys:String x:Key="Menu.Exit">退出</sys:String>
 
-    <!-- Normal view labels -->
+    <!-- Widget -->
+    <sys:String x:Key="View.EarnedToday">今日已赚</sys:String>
+    <sys:String x:Key="View.Worked">已工作</sys:String>
+    <sys:String x:Key="View.UntilEnd">距下班</sys:String>
     <sys:String x:Key="View.WorkStart">上班 </sys:String>
     <sys:String x:Key="View.WorkEnd">下班 </sys:String>
     <sys:String x:Key="View.DailySalary">日薪</sys:String>
-
-    <!-- Flex view labels -->
     <sys:String x:Key="View.Elapsed">已工作</sys:String>
     <sys:String x:Key="View.Remaining">剩余</sys:String>
     <sys:String x:Key="View.WorkWindow">工作时间</sys:String>
+    <sys:String x:Key="View.MonthProgress">本月进度</sys:String>
+    <sys:String x:Key="View.MonthEarned">本月已赚</sys:String>
+    <sys:String x:Key="View.MonthExpected">本月预计</sys:String>
+    <sys:String x:Key="View.StandardMonthly">标准月薪</sys:String>
+    <sys:String x:Key="View.WorkdaysProgress">工作日进度</sys:String>
+    <sys:String x:Key="View.Days">天</sys:String>
+    <sys:String x:Key="View.LeaveHours">请假时长</sys:String>
+    <sys:String x:Key="View.Hours">小时</sys:String>
+    <sys:String x:Key="View.PtoDays">调休天数</sys:String>
+    <sys:String x:Key="View.Expected">预计</sys:String>
+
+    <!-- Day status -->
+    <sys:String x:Key="Status.Working">赚钱中</sys:String>
+    <sys:String x:Key="Status.Lunch">午休中</sys:String>
+    <sys:String x:Key="Status.ResumeAt">{0} 继续计薪</sys:String>
+    <sys:String x:Key="Status.Done">今日完成</sys:String>
+    <sys:String x:Key="Status.Rest">今天休息</sys:String>
+    <sys:String x:Key="Status.Holiday">法定节假日</sys:String>
+    <sys:String x:Key="Status.Pto">今日调休 · 带薪休息</sys:String>
+    <sys:String x:Key="Status.Leave">今日请假</sys:String>
+    <sys:String x:Key="Status.BeforeWork">未上班</sys:String>
+    <sys:String x:Key="Status.UntilStart">距上班 {0} 分钟</sys:String>
 
     <!-- Settings window -->
     <sys:String x:Key="Settings.WindowTitle">PayBeat 设置</sys:String>
@@ -28,12 +52,28 @@
     <sys:String x:Key="Settings.Cancel">取消</sys:String>
     <sys:String x:Key="Settings.Save">保存</sys:String>
 
-    <!-- Salary tab -->
-    <sys:String x:Key="Settings.Tab.Salary">薪资计算</sys:String>
-    <sys:String x:Key="Settings.Section.Salary">薪资</sys:String>
-    <sys:String x:Key="Settings.Section.Schedule">工作日程</sys:String>
-    <sys:String x:Key="Settings.Section.Refresh">刷新</sys:String>
-    <sys:String x:Key="Settings.DailySalary">日薪</sys:String>
+    <!-- Nav -->
+    <sys:String x:Key="Settings.Tab.Salary">薪资</sys:String>
+    <sys:String x:Key="Settings.Tab.Calendar">日历</sys:String>
+    <sys:String x:Key="Settings.Tab.Display">显示</sys:String>
+    <sys:String x:Key="Settings.Tab.System">系统</sys:String>
+
+    <!-- Salary page -->
+    <sys:String x:Key="Settings.Section.Basic">基本设置</sys:String>
+    <sys:String x:Key="Settings.Mode">薪资模式</sys:String>
+    <sys:String x:Key="Settings.Mode.Monthly">月薪</sys:String>
+    <sys:String x:Key="Settings.Mode.Daily">日薪</sys:String>
+    <sys:String x:Key="Settings.Amount">工资金额</sys:String>
+    <sys:String x:Key="Settings.WeekPolicy">工作制度</sys:String>
+    <sys:String x:Key="Settings.Week.Double">双休</sys:String>
+    <sys:String x:Key="Settings.Week.Single">单休</sys:String>
+    <sys:String x:Key="Settings.Week.Custom">自定义</sys:String>
+    <sys:String x:Key="Settings.RestDays">固定休息日</sys:String>
+    <sys:String x:Key="Settings.Section.Schedule">作息方案</sys:String>
+    <sys:String x:Key="Settings.CurrentSchedule">当前方案</sys:String>
+    <sys:String x:Key="Settings.ManageSchedules">管理方案</sys:String>
+    <sys:String x:Key="Settings.EffectiveFrom">生效日期</sys:String>
+    <sys:String x:Key="Settings.SaveFromTodayHint">修改工资或作息将自今日生效，历史数据不受影响</sys:String>
     <sys:String x:Key="Settings.WorkHours">工作时间</sys:String>
     <sys:String x:Key="Settings.RefreshInterval">刷新间隔</sys:String>
     <sys:String x:Key="Settings.Seconds"> 秒</sys:String>
@@ -41,16 +81,61 @@
     <sys:String x:Key="Settings.LunchBreakStart">午休开始</sys:String>
     <sys:String x:Key="Settings.LunchBreakEnd">午休结束</sys:String>
     <sys:String x:Key="Settings.WorkOnWeekends">周末也计薪</sys:String>
+    <sys:String x:Key="Salary.DefaultScheduleName">默认作息</sys:String>
 
-    <!-- Notifications tab -->
+    <!-- Schedule manager -->
+    <sys:String x:Key="Schedule.Title">作息方案</sys:String>
+    <sys:String x:Key="Schedule.New">新建方案</sys:String>
+    <sys:String x:Key="Schedule.Edit">编辑</sys:String>
+    <sys:String x:Key="Schedule.Delete">删除</sys:String>
+    <sys:String x:Key="Schedule.Name">方案名称</sys:String>
+    <sys:String x:Key="Schedule.ApplyFrom">生效日期</sys:String>
+    <sys:String x:Key="Schedule.Active">使用中</sys:String>
+    <sys:String x:Key="Schedule.DeleteDisabled">使用中的方案不能删除</sys:String>
+    <sys:String x:Key="Schedule.ConfirmDelete">确定删除方案“{0}”吗？</sys:String>
+    <sys:String x:Key="Schedule.Close">关闭</sys:String>
+
+    <!-- Calendar page -->
+    <sys:String x:Key="Day.Mon">一</sys:String>
+    <sys:String x:Key="Day.Tue">二</sys:String>
+    <sys:String x:Key="Day.Wed">三</sys:String>
+    <sys:String x:Key="Day.Thu">四</sys:String>
+    <sys:String x:Key="Day.Fri">五</sys:String>
+    <sys:String x:Key="Day.Sat">六</sys:String>
+    <sys:String x:Key="Day.Sun">日</sys:String>
+    <sys:String x:Key="Calendar.Legend.Work">工作日</sys:String>
+    <sys:String x:Key="Calendar.Legend.Rest">休息日</sys:String>
+    <sys:String x:Key="Calendar.Legend.Holiday">法定节假日</sys:String>
+    <sys:String x:Key="Calendar.Legend.Makeup">补班</sys:String>
+    <sys:String x:Key="Calendar.Legend.Pto">调休</sys:String>
+    <sys:String x:Key="Calendar.Legend.Leave">请假</sys:String>
+    <sys:String x:Key="Calendar.ClickHint">点击日期即可设置状态</sys:String>
+    <sys:String x:Key="Calendar.Prev">上一月</sys:String>
+    <sys:String x:Key="Calendar.Next">下一月</sys:String>
+    <sys:String x:Key="Calendar.Today">今天</sys:String>
+    <sys:String x:Key="Calendar.Title">{0}年{1}月</sys:String>
+    <sys:String x:Key="Calendar.DayEditor">{0}月{1}日</sys:String>
+    <sys:String x:Key="Calendar.Status.Normal">正常工作</sys:String>
+    <sys:String x:Key="Calendar.Status.Rest">休息</sys:String>
+    <sys:String x:Key="Calendar.Status.Holiday">法定节假日</sys:String>
+    <sys:String x:Key="Calendar.Status.Makeup">官方补班</sys:String>
+    <sys:String x:Key="Calendar.Status.Pto">带薪调休</sys:String>
+    <sys:String x:Key="Calendar.Status.Leave">请假</sys:String>
+    <sys:String x:Key="Calendar.Leave.Full">全天</sys:String>
+    <sys:String x:Key="Calendar.Leave.Morning">上午</sys:String>
+    <sys:String x:Key="Calendar.Leave.Afternoon">下午</sys:String>
+    <sys:String x:Key="Calendar.Leave.Hours">按小时</sys:String>
+    <sys:String x:Key="Calendar.Clear">恢复自动</sys:String>
+    <sys:String x:Key="Calendar.AutoNote">未手动设置的日期将按官方节假日与工作制度自动判断</sys:String>
+
+    <!-- Notifications tab (kept for settings) -->
     <sys:String x:Key="Settings.Tab.Notifications">提醒</sys:String>
     <sys:String x:Key="Settings.EnableEndOfDayReminder">下班提醒</sys:String>
     <sys:String x:Key="Settings.EndOfDayReminderMinutes">提前提醒（分钟）</sys:String>
     <sys:String x:Key="Settings.EnableMilestoneNotifications">收入里程碑提醒</sys:String>
     <sys:String x:Key="Settings.MilestoneAmount">每达到</sys:String>
 
-    <!-- Display tab -->
-    <sys:String x:Key="Settings.Tab.Display">显示</sys:String>
+    <!-- Display page -->
     <sys:String x:Key="Settings.DisplayMode">显示方式</sys:String>
     <sys:String x:Key="Settings.Normal">标准</sys:String>
     <sys:String x:Key="Settings.Mini">迷你</sys:String>
@@ -58,19 +143,21 @@
     <sys:String x:Key="Settings.Flex">显摆</sys:String>
     <sys:String x:Key="Settings.Opacity">透明度</sys:String>
     <sys:String x:Key="Settings.AlwaysOnTop">窗口始终置顶</sys:String>
-
-    <!-- System tab -->
-    <sys:String x:Key="Settings.Tab.System">系统</sys:String>
-    <sys:String x:Key="Settings.RunAtStartup">开机自动启动</sys:String>
-    <sys:String x:Key="Settings.Language">语言</sys:String>
-    <sys:String x:Key="Settings.LanguageAuto">自动</sys:String>
     <sys:String x:Key="Settings.Theme">主题</sys:String>
     <sys:String x:Key="Settings.ThemeAuto">自动</sys:String>
     <sys:String x:Key="Settings.ThemeLight">浅色</sys:String>
     <sys:String x:Key="Settings.ThemeDark">深色</sys:String>
+
+    <!-- System page -->
+    <sys:String x:Key="Settings.RunAtStartup">开机自动启动</sys:String>
+    <sys:String x:Key="Settings.Language">语言</sys:String>
+    <sys:String x:Key="Settings.LanguageAuto">自动</sys:String>
     <sys:String x:Key="Settings.Hotkey">显示/隐藏快捷键</sys:String>
     <sys:String x:Key="Settings.HotkeyHint">点击后输入快捷键组合</sys:String>
     <sys:String x:Key="Settings.HotkeyCapturing">请输入快捷键组合...</sys:String>
+    <sys:String x:Key="Settings.Section.About">关于</sys:String>
+    <sys:String x:Key="Settings.BasedOn">基于 PayBeat 二次开发 · 原项目作者 coldhighsun · MIT License</sys:String>
+    <sys:String x:Key="Settings.OpenOriginal">访问原项目</sys:String>
 
     <!-- About window -->
     <sys:String x:Key="About.WindowTitle">关于 PayBeat</sys:String>
@@ -79,20 +166,43 @@
     <sys:String x:Key="About.License">许可证</sys:String>
     <sys:String x:Key="About.GitHub">GitHub</sys:String>
     <sys:String x:Key="About.Close">关闭</sys:String>
-    <sys:String x:Key="About.Update.Checking">正在检查更新...</sys:String>
-    <sys:String x:Key="About.Update.UpToDate">已是最新版本</sys:String>
-    <sys:String x:Key="About.Update.Available">发现新版本：v{0}</sys:String>
+    <sys:String x:Key="About.BasedOn">Based on PayBeat by coldhighsun (MIT)</sys:String>
+    <sys:String x:Key="About.Version">版本</sys:String>
+
+    <!-- First run -->
+    <sys:String x:Key="FirstRun.Title">欢迎使用 PayBeat</sys:String>
+    <sys:String x:Key="FirstRun.Subtitle">简单几步配置，看看今天已经赚了多少</sys:String>
+    <sys:String x:Key="FirstRun.Start">开始使用</sys:String>
+    <sys:String x:Key="FirstRun.Lunch">午休（不计时）</sys:String>
+
+    <!-- Detail window -->
+    <sys:String x:Key="Detail.Title">详情</sys:String>
+    <sys:String x:Key="Detail.Tab.Today">今日</sys:String>
+    <sys:String x:Key="Detail.Tab.Month">本月</sys:String>
+    <sys:String x:Key="Detail.MonthOverview">本月概览</sys:String>
+    <sys:String x:Key="Detail.CurrentSchedule">当前作息</sys:String>
+    <sys:String x:Key="Detail.History">历史月份</sys:String>
+    <sys:String x:Key="Detail.NoHistory">暂无历史数据</sys:String>
+    <sys:String x:Key="Detail.StandardSalary">标准工资</sys:String>
+    <sys:String x:Key="Detail.FinalEarned">最终累计</sys:String>
+    <sys:String x:Key="Detail.Workdays">工作天数</sys:String>
+    <sys:String x:Key="Detail.ScheduleUsed">当月作息</sys:String>
+    <sys:String x:Key="Detail.PolicyUsed">工作制度</sys:String>
+    <sys:String x:Key="Detail.SpecialDays">特殊日期</sys:String>
 
     <!-- Validation errors -->
-    <sys:String x:Key="Error.SalaryPositive">日薪须大于 0</sys:String>
-    <sys:String x:Key="Error.SalaryTooLarge">日薪不能超过 99,999,999</sys:String>
-    <sys:String x:Key="Error.WorkEndAfterStart">下班时间须晚于上班时间</sys:String>
+    <sys:String x:Key="Error.SalaryPositive">工资须大于 0</sys:String>
+    <sys:String x:Key="Error.SalaryTooLarge">金额不能超过 99,999,999</sys:String>
+    <sys:String x:Key="Error.WorkEndAfterStart">下班时间须晚于上班时间（暂不支持跨日班次）</sys:String>
     <sys:String x:Key="Error.AlreadyRunning">PayBeat 已在运行中。</sys:String>
     <sys:String x:Key="Error.HotkeyConflict">快捷键 {0} 注册失败，可能已被其他程序占用。</sys:String>
     <sys:String x:Key="Error.LunchBreakInvalid">午休时间必须在工作时间内，且结束时间须晚于开始时间</sys:String>
     <sys:String x:Key="Error.MilestoneAmountPositive">里程碑金额须大于 0</sys:String>
     <sys:String x:Key="Error.MilestoneAmountTooLarge">里程碑金额不能超过日薪总额</sys:String>
     <sys:String x:Key="Error.EndOfDayReminderMinutesInvalid">提醒分钟数须为 1 到 60 之间的整数</sys:String>
+    <sys:String x:Key="Error.ScheduleNameRequired">请填写方案名称</sys:String>
+    <sys:String x:Key="Error.ScheduleOverlap">存在生效日期冲突，请调整方案生效日期</sys:String>
+    <sys:String x:Key="Error.WorkDayRequired">每周至少需要设置一个工作日</sys:String>
 
     <!-- Tray notifications -->
     <sys:String x:Key="Tray.HiddenTooltip">我爱上班！</sys:String>
@@ -101,6 +211,6 @@
     <sys:String x:Key="Notification.EndOfDayTitle">快下班了</sys:String>
     <sys:String x:Key="Notification.EndOfDayBody">还有 {0} 分钟下班。</sys:String>
     <sys:String x:Key="Notification.UpdateAvailableTitle">发现新版本</sys:String>
-    <sys:String x:Key="Notification.UpdateAvailableBody">PayBeat v{0} 已发布，打开"关于"窗口下载。</sys:String>
+    <sys:String x:Key="Notification.UpdateAvailableBody">PayBeat v{0} 已发布，打开“关于”窗口下载。</sys:String>
 
 </ResourceDictionary>

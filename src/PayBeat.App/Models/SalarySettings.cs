@@ -142,4 +142,49 @@ public record SalarySettings
     {
         get; init;
     }
+
+    // ── v2 configuration model (versioned profiles, overrides) ──────────────────────────
+
+    /// <summary>Schema version of this settings file. 1 = legacy flat settings; 2 = versioned profiles.</summary>
+    public int ConfigVersion { get; init; } = 2;
+
+    /// <summary>
+    /// Versioned salary profiles; the effective one for a date is the latest EffectiveFrom ≤ date.
+    /// Defaults seed a sensible starting point (monthly 6000) so a fresh install shows plausible
+    /// numbers until the first-run setup or settings save creates the user's real profile.
+    /// </summary>
+    public List<Domain.SalaryProfile> SalaryProfiles { get; init; } =
+    [
+        new Domain.SalaryProfile
+        {
+            Mode = Domain.SalaryMode.Monthly,
+            MonthlyAmount = 6000m,
+            EffectiveFrom = new DateOnly(2000, 1, 1),
+        },
+    ];
+
+    /// <summary>Named work-time schedules (summer/winter etc.) with effective dates.</summary>
+    public List<Domain.WorkScheduleProfile> ScheduleProfiles { get; init; } =
+    [
+        new Domain.WorkScheduleProfile
+        {
+            Id = Domain.PayConfiguration.DefaultScheduleId,
+            EffectiveFrom = new DateOnly(2000, 1, 1),
+        },
+    ];
+
+    /// <summary>Versioned weekly work/rest policies.</summary>
+    public List<Domain.WorkWeekPolicy> WeekPolicies { get; init; } =
+    [
+        Domain.WorkWeekPolicy.Create(Domain.WorkWeekType.DoubleRest, new DateOnly(2000, 1, 1)),
+    ];
+
+    /// <summary>Per-date user overrides (status, paid time off, leave). Key = "yyyy-MM-dd".</summary>
+    public Dictionary<string, Domain.CalendarOverride> Overrides { get; init; } = [];
+
+    /// <summary>True once the first-run setup flow has been completed (or migrated from v1 settings).</summary>
+    public bool SetupCompleted { get; init; }
+
+    /// <summary>Display name carried over for the legacy (migrated) schedule profile.</summary>
+    public string LegacyScheduleName { get; init; } = "";
 }

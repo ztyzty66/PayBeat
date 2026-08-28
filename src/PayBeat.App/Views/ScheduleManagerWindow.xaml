@@ -1,0 +1,138 @@
+<Window x:Class="PayBeat.App.Views.ScheduleManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:PayBeat.App.Views.Controls"
+        Title="{DynamicResource Schedule.Title}"
+        Width="560"
+        Height="480"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        Background="Transparent"
+        FontFamily="Segoe UI"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <Window.Resources>
+        <Style x:Key="ScheduleListItem" TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bg" Background="{DynamicResource SurfaceBrush}"
+                                CornerRadius="8" Padding="10,8">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource TagWorkBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{DynamicResource BaseBrush}"
+            CornerRadius="12"
+            BorderBrush="{DynamicResource OverlayBrush}"
+            BorderThickness="1"
+            Padding="22,18">
+        <Border.Effect>
+            <DropShadowEffect Color="#000000" Opacity="0.5" BlurRadius="24" ShadowDepth="0"/>
+        </Border.Effect>
+
+        <DockPanel>
+
+            <!-- Header -->
+            <Grid DockPanel.Dock="Top" Margin="0,0,0,12">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE8EB;" FontFamily="Segoe MDL2 Assets" FontSize="15"
+                               Foreground="{DynamicResource GreenBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{DynamicResource Schedule.Title}" Margin="8,0,0,0"
+                               Foreground="{DynamicResource TextBrush}" FontSize="16" FontWeight="Bold"/>
+                </StackPanel>
+                <Button Content="&#xE8BB;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                        HorizontalAlignment="Right" Click="OnClose"
+                        Background="Transparent" Foreground="{DynamicResource SubtextBrush}" Padding="6,3"/>
+            </Grid>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Schedule list -->
+                <DockPanel Grid.Column="0">
+                    <Button DockPanel.Dock="Bottom" Content="{DynamicResource Schedule.New}"
+                            Click="OnNew" Padding="10,7"
+                            Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource TextBrush}"
+                            HorizontalAlignment="Stretch" Margin="0,8,0,0"/>
+                    <ListBox x:Name="ScheduleList"
+                             SelectionChanged="OnSelectionChanged"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             ItemContainerStyle="{StaticResource ScheduleListItem}"/>
+                </DockPanel>
+
+                <!-- Editor form -->
+                <StackPanel Grid.Column="2">
+
+                    <TextBlock Text="{DynamicResource Schedule.Name}" Foreground="{DynamicResource SubtextBrush}" FontSize="12" Margin="0,0,0,4"/>
+                    <TextBox x:Name="NameBox" Padding="9,7"
+                             Background="{DynamicResource SurfaceBrush}"
+                             Foreground="{DynamicResource TextBrush}"
+                             BorderBrush="{DynamicResource OverlayBrush}" BorderThickness="1"/>
+
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{DynamicResource Settings.WorkHours}" Foreground="{DynamicResource SubtextBrush}" FontSize="12" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <controls:TimePickerControl x:Name="StartTime"/>
+                            <TextBlock Text="–" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Margin="5,0"/>
+                            <controls:TimePickerControl x:Name="EndTime"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <CheckBox x:Name="LunchCheck" Content="{DynamicResource Settings.LunchBreakEnabled}"
+                              Foreground="{DynamicResource TextBrush}" FontSize="12" Cursor="Hand"
+                              Margin="0,10,0,0" Checked="OnLunchChanged" Unchecked="OnLunchChanged"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0" IsEnabled="{Binding IsChecked, ElementName=LunchCheck}">
+                        <controls:TimePickerControl x:Name="LunchStartTime"/>
+                        <TextBlock Text="–" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Margin="5,0"/>
+                        <controls:TimePickerControl x:Name="LunchEndTime"/>
+                    </StackPanel>
+
+                    <TextBlock Text="{DynamicResource Schedule.ApplyFrom}" Foreground="{DynamicResource SubtextBrush}" FontSize="12" Margin="0,12,0,4"/>
+                    <TextBox x:Name="EffectiveFromBox" Padding="9,7" MaxWidth="160" HorizontalAlignment="Left"
+                             Background="{DynamicResource SurfaceBrush}"
+                             Foreground="{DynamicResource TextBrush}"
+                             BorderBrush="{DynamicResource OverlayBrush}" BorderThickness="1"/>
+
+                    <TextBlock x:Name="FormError" Foreground="{DynamicResource RedBrush}" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                        <Button Content="{DynamicResource Settings.Save}" Click="OnSaveSchedule" Padding="16,7"
+                                Background="{DynamicResource GreenBrush}" Foreground="{DynamicResource BaseBrush}" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                        <Button x:Name="DeleteButton" Content="{DynamicResource Schedule.Delete}" Click="OnDelete" Padding="14,7"
+                                Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource RedBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

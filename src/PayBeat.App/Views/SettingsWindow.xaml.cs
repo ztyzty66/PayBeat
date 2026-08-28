@@ -1,6 +1,8 @@
 using PayBeat.App.Services;
 using PayBeat.App.ViewModels;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
+using System.Windows.Navigation;
 
 namespace PayBeat.App.Views;
 
@@ -21,10 +23,18 @@ public partial class SettingsWindow
 
     /// <summary>
     /// Initializes a new instance of <see cref="SettingsWindow"/> and loads the XAML component tree.
+    /// Wires the calendar page to its own view model once the settings view model is available.
     /// </summary>
     public SettingsWindow()
     {
         InitializeComponent();
+        DataContextChanged += (_, _) =>
+        {
+            if (DataContext is SettingsViewModel vm)
+            {
+                CalendarPage.DataContext = new CalendarViewModel(vm.Service, vm.Main);
+            }
+        };
     }
 
     private static string BuildModifierPreview(int modifiers)
@@ -222,6 +232,12 @@ public partial class SettingsWindow
         {
             DragMove();
         }
+    }
+
+    private void OriginalProject_RequestNavigate(object sender, RequestNavigateEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        e.Handled = true;
     }
 
     private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)

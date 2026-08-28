@@ -37,6 +37,7 @@
                           Command="{Binding SetNoneModeCommand}"/>
             </MenuItem>
             <Separator/>
+            <MenuItem Header="{DynamicResource Menu.Detail}" Command="{Binding OpenDetailCommand}"/>
             <MenuItem Header="{DynamicResource Menu.Settings}" Command="{Binding OpenSettingsCommand}"/>
             <MenuItem Header="{DynamicResource Menu.About}" Command="{Binding OpenAboutCommand}"/>
             <Separator/>

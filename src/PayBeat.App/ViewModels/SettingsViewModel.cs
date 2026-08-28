@@ -1,3 +1,4 @@
+using PayBeat.App.Domain;
 using PayBeat.App.Helpers;
 using PayBeat.App.Models;
 using PayBeat.App.Services;
@@ -17,16 +18,19 @@ public record LanguageOption(string Code, string Name);
 public record ThemeOption(string Code, string Name);
 
 /// <summary>
-/// View model for the settings window. Validates and saves user preferences,
-/// then calls <see cref="MainViewModel.ReloadSettings"/> to apply changes immediately.
+/// View model for the settings window. Versioning rule enforced here: editing salary, schedule
+/// times, or the week policy creates/updates a version whose EffectiveFrom is *today* — earlier
+/// months keep their own versions, so history is never rewritten by a settings save.
 /// </summary>
 public class SettingsViewModel : ViewModelBase, IDataErrorInfo
 {
     private readonly MainViewModel _mainVm;
     private readonly SettingsService _service;
+    private PayConfiguration _config;
+
     private bool _alwaysOnTop;
-    private string _currencyText;
-    private string _dailySalaryText;
+    private string _amountText;
+    private SalaryMode _salaryMode;
     private DisplayMode _displayMode;
     private bool _enableEndOfDayReminder;
     private bool _enableMilestoneNotifications;
@@ -43,12 +47,14 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     private bool _runAtStartup;
     private string _theme;
     private TimeOnly _workEnd;
-    private bool _workOnWeekends;
     private TimeOnly _workStart;
+    private WorkWeekType _weekType;
+    private string _scheduleName;
+    private readonly HashSet<DayOfWeek> _workDays = [];
 
     /// <summary>
     /// Initializes a new instance of <see cref="SettingsViewModel"/>, populating fields from the
-    /// currently persisted settings.
+    /// configuration currently effective today.
     /// </summary>
     /// <param name="service">Service used to load and persist settings.</param>
     /// <param name="mainVm">Main view model; <see cref="MainViewModel.ReloadSettings"/> is called after saving.</param>
@@ -57,31 +63,47 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         _service = service;
         _mainVm = mainVm;
 
-        var s = service.Load();
-        _dailySalaryText = s.DailySalary.ToString("G29");
-        _currencyText = s.Currency;
-        _workStart = s.WorkStart;
-        _workEnd = s.WorkEnd;
-        _displayMode = s.DisplayMode;
-        _alwaysOnTop = s.AlwaysOnTop;
-        _opacity = s.Opacity;
-        _refreshInterval = s.RefreshInterval;
-        _language = s.Language;
-        _theme = s.Theme;
-        _hotkeyModifiers = s.HotkeyModifiers;
-        _hotkeyVirtualKey = s.HotkeyVirtualKey;
+        var settings = service.Load();
+        _config = new PayDataService(service, new HistoryService()).BuildConfiguration(settings);
+
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var profile = _config.ResolveSalaryProfile(today);
+        var schedule = _config.ResolveSchedule(today);
+        var policy = _config.ResolveWeekPolicy(today);
+
+        _salaryMode = profile.Mode;
+        _amountText = (profile.Mode == SalaryMode.Monthly ? profile.MonthlyAmount : profile.DailyAmount).ToString("G29");
+        _workStart = schedule.WorkStart;
+        _workEnd = schedule.WorkEnd;
+        _lunchBreakEnabled = schedule.LunchBreakEnabled;
+        _lunchBreakStart = schedule.LunchBreakStart;
+        _lunchBreakEnd = schedule.LunchBreakEnd;
+        _scheduleName = string.IsNullOrWhiteSpace(schedule.Name)
+            ? LocalizationService.Get("Salary.DefaultScheduleName")
+            : schedule.Name;
+        _weekType = policy.Type;
+        foreach (var day in policy.WorkDays)
+        {
+            _workDays.Add(day);
+        }
+
+        _displayMode = settings.DisplayMode;
+        _alwaysOnTop = settings.AlwaysOnTop;
+        _opacity = settings.Opacity;
+        _refreshInterval = settings.RefreshInterval;
+        _language = settings.Language;
+        _theme = settings.Theme;
+        _hotkeyModifiers = settings.HotkeyModifiers;
+        _hotkeyVirtualKey = settings.HotkeyVirtualKey;
         _runAtStartup = StartupService.IsEnabled();
-        _lunchBreakEnabled = s.LunchBreakEnabled;
-        _lunchBreakStart = s.LunchBreakStart;
-        _lunchBreakEnd = s.LunchBreakEnd;
-        _workOnWeekends = s.WorkOnWeekends;
-        _enableEndOfDayReminder = s.EnableEndOfDayReminder;
-        _endOfDayReminderMinutesText = s.EndOfDayReminderMinutes.ToString();
-        _enableMilestoneNotifications = s.EnableMilestoneNotifications;
-        _milestoneAmountText = s.MilestoneAmount.ToString("G29");
+        _enableEndOfDayReminder = settings.EnableEndOfDayReminder;
+        _endOfDayReminderMinutesText = settings.EndOfDayReminderMinutes.ToString();
+        _enableMilestoneNotifications = settings.EnableMilestoneNotifications;
+        _milestoneAmountText = settings.MilestoneAmount.ToString("G29");
 
         SaveCommand = new RelayCommand(Save, CanSave);
         CancelCommand = new RelayCommand(CloseWindow);
+        ManageSchedulesCommand = new RelayCommand(OpenScheduleManager);
     }
 
     /// <summary>Binds to the Always on Top checkbox in the settings window.</summary>
@@ -119,25 +141,171 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         get;
     }
 
-    /// <summary>Raw text entered in the currency symbol field.</summary>
-    public string CurrencyText
-    {
-        get => _currencyText;
-        set => SetField(ref _currencyText, value);
-    }
-
     /// <summary>
-    /// Raw text entered in the daily salary field. Changing this re-evaluates <see cref="SaveCommand"/> availability.
+    /// Raw text entered in the amount field. Changing this re-evaluates <see cref="SaveCommand"/> availability.
     /// </summary>
-    public string DailySalaryText
+    public string AmountText
     {
-        get => _dailySalaryText;
+        get => _amountText;
         set
         {
-            SetField(ref _dailySalaryText, value);
+            SetField(ref _amountText, value);
             Revalidate();
         }
     }
+
+    /// <summary>Selected salary mode (monthly/daily).</summary>
+    public SalaryMode SalaryMode
+    {
+        get => _salaryMode;
+        set => SetField(ref _salaryMode, value);
+    }
+
+    /// <summary>Proxy for the "monthly" segmented button.</summary>
+    public bool IsMonthlyMode
+    {
+        get => _salaryMode == SalaryMode.Monthly;
+        set
+        {
+            if (value)
+            {
+                SalaryMode = SalaryMode.Monthly;
+            }
+        }
+    }
+
+    /// <summary>Proxy for the "daily" segmented button.</summary>
+    public bool IsDailyMode
+    {
+        get => _salaryMode == SalaryMode.Daily;
+        set
+        {
+            if (value)
+            {
+                SalaryMode = SalaryMode.Daily;
+            }
+        }
+    }
+
+    /// <summary>Selected week policy preset.</summary>
+    public WorkWeekType WeekType
+    {
+        get => _weekType;
+        set
+        {
+            if (SetField(ref _weekType, value))
+            {
+                ApplyWeekPreset(value);
+            }
+        }
+    }
+
+    /// <summary>Proxy for the double-rest segmented button.</summary>
+    public bool IsDoubleRest
+    {
+        get => _weekType == WorkWeekType.DoubleRest;
+        set
+        {
+            if (value)
+            {
+                WeekType = WorkWeekType.DoubleRest;
+            }
+        }
+    }
+
+    /// <summary>Proxy for the single-rest segmented button.</summary>
+    public bool IsSingleRest
+    {
+        get => _weekType == WorkWeekType.SingleRest;
+        set
+        {
+            if (value)
+            {
+                WeekType = WorkWeekType.SingleRest;
+            }
+        }
+    }
+
+    /// <summary>Proxy for the custom segmented button.</summary>
+    public bool IsCustomWeek
+    {
+        get => _weekType == WorkWeekType.Custom;
+        set
+        {
+            if (value)
+            {
+                WeekType = WorkWeekType.Custom;
+            }
+        }
+    }
+
+    /// <summary>Whether Monday is a working day (editable toggle).</summary>
+    public bool WorkMonday
+    {
+        get => _workDays.Contains(DayOfWeek.Monday);
+        set => SetWorkDay(DayOfWeek.Monday, value);
+    }
+
+    /// <summary>Whether Tuesday is a working day (editable toggle).</summary>
+    public bool WorkTuesday
+    {
+        get => _workDays.Contains(DayOfWeek.Tuesday);
+        set => SetWorkDay(DayOfWeek.Tuesday, value);
+    }
+
+    /// <summary>Whether Wednesday is a working day (editable toggle).</summary>
+    public bool WorkWednesday
+    {
+        get => _workDays.Contains(DayOfWeek.Wednesday);
+        set => SetWorkDay(DayOfWeek.Wednesday, value);
+    }
+
+    /// <summary>Whether Thursday is a working day (editable toggle).</summary>
+    public bool WorkThursday
+    {
+        get => _workDays.Contains(DayOfWeek.Thursday);
+        set => SetWorkDay(DayOfWeek.Thursday, value);
+    }
+
+    /// <summary>Whether Friday is a working day (editable toggle).</summary>
+    public bool WorkFriday
+    {
+        get => _workDays.Contains(DayOfWeek.Friday);
+        set => SetWorkDay(DayOfWeek.Friday, value);
+    }
+
+    /// <summary>Whether Saturday is a working day (editable toggle).</summary>
+    public bool WorkSaturday
+    {
+        get => _workDays.Contains(DayOfWeek.Saturday);
+        set => SetWorkDay(DayOfWeek.Saturday, value);
+    }
+
+    /// <summary>Whether Sunday is a working day (editable toggle).</summary>
+    public bool WorkSunday
+    {
+        get => _workDays.Contains(DayOfWeek.Sunday);
+        set => SetWorkDay(DayOfWeek.Sunday, value);
+    }
+
+    /// <summary>Name of the schedule being edited.</summary>
+    public string ScheduleName
+    {
+        get => _scheduleName;
+        set => SetField(ref _scheduleName, value);
+    }
+
+    /// <summary>Opens the schedule manager window.</summary>
+    public ICommand ManageSchedulesCommand
+    {
+        get;
+    }
+
+    /// <summary>Exposes the settings store for child views (calendar page).</summary>
+    public SettingsService Service => _service;
+
+    /// <summary>Exposes the main view model for child views (calendar page reloads).</summary>
+    public MainViewModel Main => _mainVm;
 
     /// <summary>
     /// Selected display mode in the settings window. Setting this also raises change notifications
@@ -297,33 +465,21 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     public bool LunchBreakEnabled
     {
         get => _lunchBreakEnabled;
-        set
-        {
-            SetField(ref _lunchBreakEnabled, value);
-            Revalidate();
-        }
+        set => SetField(ref _lunchBreakEnabled, value);
     }
 
-    /// <summary>Lunch break end time. Changing this re-evaluates <see cref="SaveCommand"/> availability.</summary>
+    /// <summary>Lunch break end time.</summary>
     public TimeOnly LunchBreakEnd
     {
         get => _lunchBreakEnd;
-        set
-        {
-            SetField(ref _lunchBreakEnd, value);
-            Revalidate();
-        }
+        set => SetField(ref _lunchBreakEnd, value);
     }
 
-    /// <summary>Lunch break start time. Changing this re-evaluates <see cref="SaveCommand"/> availability.</summary>
+    /// <summary>Lunch break start time.</summary>
     public TimeOnly LunchBreakStart
     {
         get => _lunchBreakStart;
-        set
-        {
-            SetField(ref _lunchBreakStart, value);
-            Revalidate();
-        }
+        set => SetField(ref _lunchBreakStart, value);
     }
 
     /// <summary>Raw text entered in the milestone amount field.</summary>
@@ -371,39 +527,24 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         set => SetField(ref _theme, value);
     }
 
-    /// <summary>Work day end time. Changing this re-evaluates <see cref="SaveCommand"/> availability.</summary>
+    /// <summary>Work day end time.</summary>
     public TimeOnly WorkEnd
     {
         get => _workEnd;
-        set
-        {
-            SetField(ref _workEnd, value);
-            Revalidate();
-        }
+        set => SetField(ref _workEnd, value);
     }
 
-    /// <summary>Whether earnings accrue on Saturdays and Sundays.</summary>
-    public bool WorkOnWeekends
-    {
-        get => _workOnWeekends;
-        set => SetField(ref _workOnWeekends, value);
-    }
-
-    /// <summary>Work day start time. Changing this re-evaluates <see cref="SaveCommand"/> availability.</summary>
+    /// <summary>Work day start time.</summary>
     public TimeOnly WorkStart
     {
         get => _workStart;
-        set
-        {
-            SetField(ref _workStart, value);
-            Revalidate();
-        }
+        set => SetField(ref _workStart, value);
     }
 
     /// <summary>Per-field validation error shown as a bubble popup next to the offending input.</summary>
     string IDataErrorInfo.this[string columnName] => columnName switch
     {
-        nameof(DailySalaryText) => ValidateDailySalary() ?? string.Empty,
+        nameof(AmountText) => ValidateAmount() ?? string.Empty,
         nameof(EndOfDayReminderMinutesText) => EnableEndOfDayReminder ? ValidateEndOfDayReminderMinutes() ?? string.Empty : string.Empty,
         nameof(MilestoneAmountText) => EnableMilestoneNotifications ? ValidateMilestoneAmount() ?? string.Empty : string.Empty,
         _ => string.Empty,
@@ -423,9 +564,76 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         }
     }
 
+    private void OpenScheduleManager()
+    {
+        var win = new ScheduleManagerWindow(_service, _mainVm) { Owner = Application.Current.Windows.OfType<SettingsWindow>().FirstOrDefault() };
+        win.ShowDialog();
+        ReloadFromService();
+    }
+
+    /// <summary>Re-reads persisted settings after the schedule manager may have changed them.</summary>
+    private void ReloadFromService()
+    {
+        var settings = _service.Load();
+        _config = new PayDataService(_service, new HistoryService()).BuildConfiguration(settings);
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var schedule = _config.ResolveSchedule(today);
+        _workStart = schedule.WorkStart;
+        _workEnd = schedule.WorkEnd;
+        _lunchBreakEnabled = schedule.LunchBreakEnabled;
+        _lunchBreakStart = schedule.LunchBreakStart;
+        _lunchBreakEnd = schedule.LunchBreakEnd;
+        OnPropertyChanged(nameof(WorkStart));
+        OnPropertyChanged(nameof(WorkEnd));
+        OnPropertyChanged(nameof(LunchBreakEnabled));
+        OnPropertyChanged(nameof(LunchBreakStart));
+        OnPropertyChanged(nameof(LunchBreakEnd));
+        Revalidate();
+    }
+
+    private void ApplyWeekPreset(WorkWeekType type)
+    {
+        _workDays.Clear();
+        foreach (var day in WorkWeekPolicy.Create(type, new DateOnly(2000, 1, 1)).WorkDays)
+        {
+            _workDays.Add(day);
+        }
+
+        OnPropertyChanged(nameof(WorkMonday));
+        OnPropertyChanged(nameof(WorkTuesday));
+        OnPropertyChanged(nameof(WorkWednesday));
+        OnPropertyChanged(nameof(WorkThursday));
+        OnPropertyChanged(nameof(WorkFriday));
+        OnPropertyChanged(nameof(WorkSaturday));
+        OnPropertyChanged(nameof(WorkSunday));
+    }
+
+    private void SetWorkDay(DayOfWeek day, bool isWorkDay)
+    {
+        if (isWorkDay)
+        {
+            _workDays.Add(day);
+        }
+        else
+        {
+            _workDays.Remove(day);
+        }
+
+        OnPropertyChanged(day switch
+        {
+            DayOfWeek.Monday => nameof(WorkMonday),
+            DayOfWeek.Tuesday => nameof(WorkTuesday),
+            DayOfWeek.Wednesday => nameof(WorkWednesday),
+            DayOfWeek.Thursday => nameof(WorkThursday),
+            DayOfWeek.Friday => nameof(WorkFriday),
+            DayOfWeek.Saturday => nameof(WorkSaturday),
+            _ => nameof(WorkSunday),
+        });
+    }
+
     /// <summary>
     /// Updates the bottom-of-window error message and Save availability. Only schedule-related errors are
-    /// shown here — the daily salary, milestone amount, and reminder minutes fields report their own errors
+    /// shown here — the amount, milestone amount, and reminder minutes fields report their own errors
     /// via a bubble popup next to the field instead.
     /// </summary>
     private void Revalidate()
@@ -434,6 +642,11 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         ((RelayCommand)SaveCommand).RaiseCanExecuteChanged();
     }
 
+    /// <summary>
+    /// Persists everything. Versioning: salary/schedule/week changes take effect from *today* —
+    /// if the latest version already starts today it is updated in place, otherwise a new version
+    /// is appended. Older versions are never touched.
+    /// </summary>
     private void Save()
     {
         if (Validate() is not null)
@@ -442,14 +655,91 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
             return;
         }
 
-        var salary = decimal.Parse(_dailySalaryText);
         var existing = _service.Load();
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var amount = Math.Round(decimal.Parse(_amountText), 2);
+
+        // ── salary profile (versioned) ──
+        var profiles = new List<SalaryProfile>(existing.SalaryProfiles);
+        var latestProfile = profiles.Count > 0
+            ? profiles.OrderByDescending(p => p.EffectiveFrom).First()
+            : null;
+        var desiredProfile = new SalaryProfile
+        {
+            Mode = _salaryMode,
+            MonthlyAmount = _salaryMode == SalaryMode.Monthly ? amount : 0m,
+            DailyAmount = _salaryMode == SalaryMode.Daily ? amount : 0m,
+            EffectiveFrom = today,
+        };
+        if (latestProfile is null)
+        {
+            profiles.Add(desiredProfile with { EffectiveFrom = new DateOnly(2000, 1, 1) });
+        }
+        else if (latestProfile.EffectiveFrom == today)
+        {
+            profiles[profiles.IndexOf(latestProfile)] = desiredProfile;
+        }
+        else if (latestProfile.Mode != _salaryMode
+                 || (_salaryMode == SalaryMode.Monthly ? latestProfile.MonthlyAmount : latestProfile.DailyAmount) != amount)
+        {
+            profiles.Add(desiredProfile);
+        }
+
+        // ── schedule (versioned) ──
+        var schedules = new List<WorkScheduleProfile>(existing.ScheduleProfiles);
+        var latestSchedule = schedules.Count > 0
+            ? schedules.OrderByDescending(s => s.EffectiveFrom).First()
+            : null;
+        var desiredSchedule = new WorkScheduleProfile
+        {
+            Id = latestSchedule?.EffectiveFrom == today ? latestSchedule.Id : Guid.NewGuid().ToString("N"),
+            Name = string.IsNullOrWhiteSpace(_scheduleName) ? LocalizationService.Get("Salary.DefaultScheduleName") : _scheduleName.Trim(),
+            WorkStart = _workStart,
+            WorkEnd = _workEnd,
+            LunchBreakEnabled = _lunchBreakEnabled,
+            LunchBreakStart = _lunchBreakStart,
+            LunchBreakEnd = _lunchBreakEnd,
+            EffectiveFrom = today,
+        };
+        if (latestSchedule is null)
+        {
+            schedules.Add(desiredSchedule with { EffectiveFrom = new DateOnly(2000, 1, 1) });
+        }
+        else if (latestSchedule.EffectiveFrom == today)
+        {
+            schedules[schedules.IndexOf(latestSchedule)] = desiredSchedule;
+        }
+        else if (!ScheduleEquals(latestSchedule, desiredSchedule))
+        {
+            schedules.Add(desiredSchedule);
+        }
+
+        // ── week policy (versioned) ──
+        var policies = new List<WorkWeekPolicy>(existing.WeekPolicies);
+        var latestPolicy = policies.Count > 0
+            ? policies.OrderByDescending(p => p.EffectiveFrom).First()
+            : null;
+        var desiredPolicy = new WorkWeekPolicy
+        {
+            Type = _weekType,
+            WorkDays = new HashSet<DayOfWeek>(_workDays),
+            EffectiveFrom = today,
+        };
+        if (latestPolicy is null)
+        {
+            policies.Add(desiredPolicy with { EffectiveFrom = new DateOnly(2000, 1, 1) });
+        }
+        else if (latestPolicy.EffectiveFrom == today)
+        {
+            policies[policies.IndexOf(latestPolicy)] = desiredPolicy;
+        }
+        else if (latestPolicy.Type != _weekType || !latestPolicy.WorkDays.SetEquals(_workDays))
+        {
+            policies.Add(desiredPolicy);
+        }
+
         var settings = existing with
         {
-            DailySalary = Math.Round(salary, 2),
-            WorkStart = WorkStart,
-            WorkEnd = WorkEnd,
-            Currency = string.IsNullOrWhiteSpace(_currencyText) ? "¥" : _currencyText.Trim(),
             DisplayMode = DisplayMode,
             AlwaysOnTop = AlwaysOnTop,
             Opacity = Opacity,
@@ -458,10 +748,6 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
             Theme = Theme,
             HotkeyModifiers = HotkeyModifiers,
             HotkeyVirtualKey = HotkeyVirtualKey,
-            LunchBreakEnabled = LunchBreakEnabled,
-            LunchBreakStart = LunchBreakStart,
-            LunchBreakEnd = LunchBreakEnd,
-            WorkOnWeekends = WorkOnWeekends,
             EnableEndOfDayReminder = EnableEndOfDayReminder,
             EndOfDayReminderMinutes = EnableEndOfDayReminder && int.TryParse(_endOfDayReminderMinutesText, out var parsedMinutes)
                 ? parsedMinutes
@@ -469,7 +755,11 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
             EnableMilestoneNotifications = EnableMilestoneNotifications,
             MilestoneAmount = EnableMilestoneNotifications && decimal.TryParse(_milestoneAmountText, out var parsedMilestone)
                 ? Math.Round(parsedMilestone, 2)
-                : existing.MilestoneAmount
+                : existing.MilestoneAmount,
+            SalaryProfiles = profiles,
+            ScheduleProfiles = schedules,
+            WeekPolicies = policies,
+            SetupCompleted = true,
         };
 
         _service.Save(settings);
@@ -481,13 +771,20 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         CloseWindow();
     }
 
+    private static bool ScheduleEquals(WorkScheduleProfile a, WorkScheduleProfile b) =>
+        a.WorkStart == b.WorkStart
+        && a.WorkEnd == b.WorkEnd
+        && a.LunchBreakEnabled == b.LunchBreakEnabled
+        && a.LunchBreakStart == b.LunchBreakStart
+        && a.LunchBreakEnd == b.LunchBreakEnd;
+
     /// <summary>Validates all fields and returns the first error message, or <see langword="null"/> when everything is valid.</summary>
     private string? Validate()
     {
-        var salaryError = ValidateDailySalary();
-        if (salaryError is not null)
+        var amountError = ValidateAmount();
+        if (amountError is not null)
         {
-            return salaryError;
+            return amountError;
         }
         var scheduleError = ValidateSchedule();
         if (scheduleError is not null)
@@ -510,18 +807,22 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
                 return milestoneError;
             }
         }
+        if (_workDays.Count == 0)
+        {
+            return LocalizationService.Get("Error.WorkDayRequired");
+        }
 
         return null;
     }
 
-    /// <summary>Validates <see cref="DailySalaryText"/>; returns <see langword="null"/> when valid.</summary>
-    private string? ValidateDailySalary()
+    /// <summary>Validates <see cref="AmountText"/>; returns <see langword="null"/> when valid.</summary>
+    private string? ValidateAmount()
     {
-        if (!decimal.TryParse(_dailySalaryText, out var salary) || salary <= 0)
+        if (!decimal.TryParse(_amountText, out var amount) || amount <= 0)
         {
             return LocalizationService.Get("Error.SalaryPositive");
         }
-        if (salary > SalarySettings.MaxDailySalary)
+        if (amount > SalarySettings.MaxDailySalary)
         {
             return LocalizationService.Get("Error.SalaryTooLarge");
         }
@@ -547,7 +848,7 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         {
             return LocalizationService.Get("Error.MilestoneAmountPositive");
         }
-        if (decimal.TryParse(_dailySalaryText, out var daily) && milestone > daily)
+        if (decimal.TryParse(_amountText, out var daily) && milestone > daily)
         {
             return LocalizationService.Get("Error.MilestoneAmountTooLarge");
         }

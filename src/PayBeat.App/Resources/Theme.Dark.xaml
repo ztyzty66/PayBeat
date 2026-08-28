@@ -11,6 +11,11 @@
     <Color x:Key="GreenColor">#A6E3A1</Color>
     <Color x:Key="BlueColor">#89B4FA</Color>
     <Color x:Key="RedColor">#F38BA8</Color>
+    <Color x:Key="OrangeColor">#FAB387</Color>
+    <Color x:Key="PurpleColor">#CBA6F7</Color>
+    <Color x:Key="AmberColor">#F9E2AF</Color>
+    <Color x:Key="AccentGradientFromColor">#89B4FA</Color>
+    <Color x:Key="AccentGradientToColor">#1E1E2E</Color>
     <Color x:Key="CaptureBackgroundColor">#1C3A5E</Color>
     <Color x:Key="FlexGradientMidColor">#181825</Color>
 
@@ -23,6 +28,17 @@
     <SolidColorBrush x:Key="GreenBrush" Color="{StaticResource GreenColor}"/>
     <SolidColorBrush x:Key="BlueBrush" Color="{StaticResource BlueColor}"/>
     <SolidColorBrush x:Key="RedBrush" Color="{StaticResource RedColor}"/>
+    <SolidColorBrush x:Key="OrangeBrush" Color="{StaticResource OrangeColor}"/>
+    <SolidColorBrush x:Key="PurpleBrush" Color="{StaticResource PurpleColor}"/>
+    <SolidColorBrush x:Key="AmberBrush" Color="{StaticResource AmberColor}"/>
     <SolidColorBrush x:Key="CaptureBackgroundBrush" Color="{StaticResource CaptureBackgroundColor}"/>
+
+    <!-- Status tag brushes (translucent fills over the base) -->
+    <SolidColorBrush x:Key="TagRestBrush" Color="#40F38BA8"/>
+    <SolidColorBrush x:Key="TagHolidayBrush" Color="#40F9E2AF"/>
+    <SolidColorBrush x:Key="TagMakeupBrush" Color="#4089B4FA"/>
+    <SolidColorBrush x:Key="TagPtoBrush" Color="#40FAB387"/>
+    <SolidColorBrush x:Key="TagLeaveBrush" Color="#40CBA6F7"/>
+    <SolidColorBrush x:Key="TagWorkBrush" Color="#40A6E3A1"/>
 
 </ResourceDictionary>

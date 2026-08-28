@@ -34,6 +34,7 @@ public sealed class TrayIconService : IDisposable
         displayModeMenuItem.DropDownItems.AddRange([_flexMenuItem, _normalMenuItem, _miniMenuItem, _noneMenuItem]);
 
         var separator1 = new ToolStripSeparator();
+        var detailMenuItem = new MenuItem(Text("Menu.Detail"), null, (_, _) => _viewModel.OpenDetailCommand.Execute(null));
         var settingsMenuItem = new MenuItem(Text("Menu.Settings"), null, (_, _) => _viewModel.OpenSettingsCommand.Execute(null));
         var aboutMenuItem = new MenuItem(Text("Menu.About"), null, (_, _) => _viewModel.OpenAboutCommand.Execute(null));
         var separator2 = new ToolStripSeparator();
@@ -41,13 +42,14 @@ public sealed class TrayIconService : IDisposable
         var contextMenu = new ContextMenuStrip();
         contextMenu.Items.Add(displayModeMenuItem);
         contextMenu.Items.Add(separator1);
+        contextMenu.Items.Add(detailMenuItem);
         contextMenu.Items.Add(settingsMenuItem);
         contextMenu.Items.Add(aboutMenuItem);
         contextMenu.Items.Add(separator2);
         contextMenu.Items.Add(new MenuItem(Text("Menu.Exit"), null, (_, _) => _viewModel.ExitCommand.Execute(null)));
         contextMenu.Opening += (_, _) => UpdateDisplayModeChecks();
 
-        _restrictedItems = [displayModeMenuItem, separator1, settingsMenuItem, aboutMenuItem, separator2];
+        _restrictedItems = [displayModeMenuItem, separator1, detailMenuItem, settingsMenuItem, aboutMenuItem, separator2];
 
         _notifyIcon = new NotifyIcon
         {

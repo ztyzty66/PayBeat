@@ -280,6 +280,28 @@
                                         <ToggleButton Content="{DynamicResource Day.Sat}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkSaturday, Mode=TwoWay}"/>
                                         <ToggleButton Content="{DynamicResource Day.Sun}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkSunday, Mode=TwoWay}"/>
                                     </StackPanel>
+
+                                    <!-- Effective date: applies to salary amount + work policy -->
+                                    <TextBlock Text="{DynamicResource Settings.Effective.Title}" Style="{StaticResource FieldLabel}" Margin="0,14,0,6"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Content="{DynamicResource Settings.Effective.FirstOfMonth}" Style="{StaticResource SegmentButton}"
+                                                     IsChecked="{Binding IsEffectiveFirstOfMonth, Mode=TwoWay}"/>
+                                        <RadioButton Content="{DynamicResource Settings.Effective.Today}" Style="{StaticResource SegmentButton}"
+                                                     IsChecked="{Binding IsEffectiveToday, Mode=TwoWay}"/>
+                                        <RadioButton Content="{DynamicResource Settings.Effective.Custom}" Style="{StaticResource SegmentButton}"
+                                                     IsChecked="{Binding IsEffectiveCustom, Mode=TwoWay}"/>
+                                        <TextBox Style="{StaticResource ValidatedTextBox}"
+                                                 Text="{Binding CustomEffectiveDateText, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                                                 Width="110"
+                                                 Padding="8,6" FontSize="12"
+                                                 Background="{DynamicResource SurfaceBrush}"
+                                                 Foreground="{DynamicResource TextBrush}"
+                                                 BorderBrush="{DynamicResource OverlayBrush}" BorderThickness="1"
+                                                 IsEnabled="{Binding IsEffectiveCustom, Mode=TwoWay}"/>
+                                    </StackPanel>
+                                    <TextBlock Text="{DynamicResource Settings.Effective.Scope}"
+                                               Foreground="{DynamicResource MutedBrush}" FontSize="11"
+                                               TextWrapping="Wrap" Margin="0,8,0,0"/>
                                 </StackPanel>
                             </Border>
 

@@ -50,6 +50,22 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     private string _hotkeyStatus = "";
     private bool _originalRunAtStartup;
 
+    /// <summary>Which effective date the salary amount and work policy apply from.</summary>
+    public enum EffectiveDateChoice
+    {
+        /// <summary>First day of the current month (default: the whole current month follows the new rule).</summary>
+        FirstOfMonth = 0,
+
+        /// <summary>Today (mid-month switches, user's explicit choice).</summary>
+        Today = 1,
+
+        /// <summary>A user-typed date (explicit versioned behaviour).</summary>
+        Custom = 2,
+    }
+
+    private EffectiveDateChoice _effectiveChoice = EffectiveDateChoice.FirstOfMonth;
+    private string _customEffectiveDateText = "";
+
     public SettingsViewModel(ConfigurationStore store, MainViewModel mainVm)
     {
         _store = store;
@@ -87,6 +103,8 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         _endOfDayReminderMinutesText = _draft.EndOfDayReminderMinutes.ToString();
         _enableMilestoneNotifications = _draft.EnableMilestoneNotifications;
         _milestoneAmountText = _draft.MilestoneAmount.ToString("G29");
+        _effectiveChoice = EffectiveDateChoice.FirstOfMonth;
+        _customEffectiveDateText = new DateOnly(DateTime.Now.Year, DateTime.Now.Month, 1).ToString("yyyy-MM-dd");
 
         SaveCommand = new RelayCommand(Save, CanSave);
         CancelCommand = new RelayCommand(CloseWindow);
@@ -121,6 +139,56 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     public bool WorkSunday { get => _workDays.Contains(DayOfWeek.Sunday); set => SetWorkDay(DayOfWeek.Sunday, value); }
 
     public string ScheduleName { get => _scheduleName; set => SetField(ref _scheduleName, value); }
+
+    /// <summary>Which effective date salary/work-policy changes apply from (default: first of month).</summary>
+    public EffectiveDateChoice Choice
+    {
+        get => _effectiveChoice;
+        set { if (SetField(ref _effectiveChoice, value)) Revalidate(); }
+    }
+
+    /// <summary>Radio proxy: 本月1日起.</summary>
+    public bool IsEffectiveFirstOfMonth
+    {
+        get => _effectiveChoice == EffectiveDateChoice.FirstOfMonth;
+        set { if (value) Choice = EffectiveDateChoice.FirstOfMonth; }
+    }
+
+    /// <summary>Radio proxy: 今天起.</summary>
+    public bool IsEffectiveToday
+    {
+        get => _effectiveChoice == EffectiveDateChoice.Today;
+        set { if (value) Choice = EffectiveDateChoice.Today; }
+    }
+
+    /// <summary>Radio proxy: 自定义日期.</summary>
+    public bool IsEffectiveCustom
+    {
+        get => _effectiveChoice == EffectiveDateChoice.Custom;
+        set { if (value) Choice = EffectiveDateChoice.Custom; }
+    }
+
+    /// <summary>Custom effective date text (yyyy-MM-dd), used when <see cref="Choice"/> is Custom.</summary>
+    public string CustomEffectiveDateText
+    {
+        get => _customEffectiveDateText;
+        set { if (SetField(ref _customEffectiveDateText, value)) Revalidate(); }
+    }
+
+    /// <summary>Resolves the currently selected effective date for salary/work-policy edits.</summary>
+    public DateOnly ResolveEffectiveDate()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        switch (_effectiveChoice)
+        {
+            case EffectiveDateChoice.Today:
+                return today;
+            case EffectiveDateChoice.Custom when DateOnly.TryParseExact(_customEffectiveDateText.Trim(), "yyyy-MM-dd", out var custom):
+                return custom;
+            default:
+                return new DateOnly(today.Year, today.Month, 1);
+        }
+    }
 
     /// <summary>Name of the schedule currently effective today (read-only display in card C).</summary>
     public string CurrentScheduleName => _config.ResolveSchedule(DateOnly.FromDateTime(DateTime.Now)) is { } s && !string.IsNullOrWhiteSpace(s.Name)
@@ -257,8 +325,7 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     /// </summary>
     private void ApplyWeekToDraft()
     {
-        var today = DateOnly.FromDateTime(DateTime.Now);
-        var policy = new WorkWeekPolicy { Type = _weekType, WorkDays = new HashSet<DayOfWeek>(_workDays), EffectiveFrom = today };
+        var policy = new WorkWeekPolicy { Type = _weekType, WorkDays = new HashSet<DayOfWeek>(_workDays), EffectiveFrom = ResolveEffectiveDate() };
         _draft.WeekPolicies = ProfileVersioning.Upsert(_draft.WeekPolicies, policy, p => p.EffectiveFrom, (a, b) => a.Type == b.Type && a.WorkDays.SetEquals(b.WorkDays));
         _draft.RaiseChanged();
     }
@@ -275,14 +342,17 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
 
         var existing = _draft.Base;
         var today = DateOnly.FromDateTime(DateTime.Now);
+        // Salary amount and work policy follow the user-selected effective date (default:
+        // first day of the current month). Schedules keep their own "today" semantics.
+        var effectiveDate = ResolveEffectiveDate();
         var amount = Math.Round(decimal.Parse(_amountText), 2);
 
         var profiles = new List<SalaryProfile>(existing.SalaryProfiles);
         var latestProfile = profiles.Count > 0 ? profiles.OrderByDescending(p => p.EffectiveFrom).First() : null;
-        var desiredProfile = new SalaryProfile { Mode = _salaryMode, MonthlyAmount = _salaryMode == SalaryMode.Monthly ? amount : 0m, DailyAmount = _salaryMode == SalaryMode.Daily ? amount : 0m, EffectiveFrom = today };
+        var desiredProfile = new SalaryProfile { Mode = _salaryMode, MonthlyAmount = _salaryMode == SalaryMode.Monthly ? amount : 0m, DailyAmount = _salaryMode == SalaryMode.Daily ? amount : 0m, EffectiveFrom = effectiveDate };
         if (latestProfile is null) profiles.Add(desiredProfile with { EffectiveFrom = new DateOnly(2000, 1, 1) });
-        else if (latestProfile.EffectiveFrom == today) profiles[profiles.IndexOf(latestProfile)] = desiredProfile;
-        else if (latestProfile.Mode != _salaryMode || (_salaryMode == SalaryMode.Monthly ? latestProfile.MonthlyAmount : latestProfile.DailyAmount) != amount) profiles.Add(desiredProfile);
+        else if (latestProfile.EffectiveFrom == effectiveDate) profiles[profiles.IndexOf(latestProfile)] = desiredProfile;
+        else profiles.Add(desiredProfile); // new version from the chosen date (same-date saves upsert)
 
         var schedules = new List<WorkScheduleProfile>(existing.ScheduleProfiles);
         var latestSchedule = schedules.Count > 0 ? schedules.OrderByDescending(s => s.EffectiveFrom).First() : null;
@@ -293,10 +363,10 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
 
         var policies = new List<WorkWeekPolicy>(existing.WeekPolicies);
         var latestPolicy = policies.Count > 0 ? policies.OrderByDescending(p => p.EffectiveFrom).First() : null;
-        var desiredPolicy = new WorkWeekPolicy { Type = _weekType, WorkDays = new HashSet<DayOfWeek>(_workDays), EffectiveFrom = today };
+        var desiredPolicy = new WorkWeekPolicy { Type = _weekType, WorkDays = new HashSet<DayOfWeek>(_workDays), EffectiveFrom = effectiveDate };
         if (latestPolicy is null) policies.Add(desiredPolicy with { EffectiveFrom = new DateOnly(2000, 1, 1) });
-        else if (latestPolicy.EffectiveFrom == today) policies[policies.IndexOf(latestPolicy)] = desiredPolicy;
-        else if (latestPolicy.Type != _weekType || !latestPolicy.WorkDays.SetEquals(_workDays)) policies.Add(desiredPolicy);
+        else if (latestPolicy.EffectiveFrom == effectiveDate) policies[policies.IndexOf(latestPolicy)] = desiredPolicy;
+        else policies.Add(desiredPolicy); // new version from the chosen date (same-date saves upsert)
 
         profiles = ProfileVersioning.DeduplicateByDate(profiles, p => p.EffectiveFrom);
         schedules = ProfileVersioning.DeduplicateByDate(schedules, s => s.EffectiveFrom);
@@ -337,6 +407,11 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         if (EnableEndOfDayReminder && ValidateEndOfDayReminderMinutes() is { } me) return me;
         if (EnableMilestoneNotifications && ValidateMilestoneAmount() is { } ms) return ms;
         if (_workDays.Count == 0) return LocalizationService.Get("Error.WorkDayRequired");
+        if (_effectiveChoice == EffectiveDateChoice.Custom
+            && !DateOnly.TryParseExact(_customEffectiveDateText.Trim(), "yyyy-MM-dd", out _))
+        {
+            return LocalizationService.Get("Error.EffectiveDateInvalid");
+        }
         return null;
     }
 

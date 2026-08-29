@@ -247,5 +247,11 @@
 <sys:String x:Key="View.RestTitle">😴 今天休息</sys:String>
 <sys:String x:Key="Schedule.ActiveHint">当前生效方案，切换其他方案请选择后点击「设为当前」</sys:String>
 <sys:String x:Key="Schedule.LunchLabel">午休</sys:String>
+<sys:String x:Key="Settings.Effective.Title">生效时间</sys:String>
+<sys:String x:Key="Settings.Effective.FirstOfMonth">本月1日起</sys:String>
+<sys:String x:Key="Settings.Effective.Today">今天起</sys:String>
+<sys:String x:Key="Settings.Effective.Custom">自定义日期</sys:String>
+<sys:String x:Key="Settings.Effective.Scope">适用于工资金额与工作制度；作息方案从今天起生效</sys:String>
+<sys:String x:Key="Error.EffectiveDateInvalid">⚠ 自定义生效日期格式无效，例如 2026-08-01</sys:String>
 
 </ResourceDictionary>

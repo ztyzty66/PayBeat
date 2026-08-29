@@ -51,7 +51,11 @@ public partial class FirstRunWindow
             : WeekCustom.IsChecked == true ? WorkWeekType.Custom
             : WorkWeekType.DoubleRest;
         var mode = ModeDaily.IsChecked == true ? SalaryMode.Daily : SalaryMode.Monthly;
-        var since = new DateOnly(2000, 1, 1);
+        // Salary and work policy cover the whole current month from day one; the work
+        // schedule starts today (mid-month schedule switches are the normal case).
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var since = new DateOnly(today.Year, today.Month, 1);
+        var scheduleSince = today;
         var scheduleName = LocalizationService.Get("Salary.DefaultScheduleName");
 
         var existing = _store.CurrentSettings;
@@ -74,7 +78,7 @@ public partial class FirstRunWindow
                 LunchBreakEnabled = lunchOn,
                 LunchBreakStart = lunchStart,
                 LunchBreakEnd = lunchEnd,
-                EffectiveFrom = since,
+                EffectiveFrom = scheduleSince,
             }],
             WeekPolicies = [WorkWeekPolicy.Create(weekType, since)],
             SetupCompleted = true,

@@ -247,5 +247,11 @@
 <sys:String x:Key="View.RestTitle">😴 Day off</sys:String>
 <sys:String x:Key="Schedule.ActiveHint">Currently effective. Select another schedule and press "Set as current" to switch.</sys:String>
 <sys:String x:Key="Schedule.LunchLabel">Lunch</sys:String>
+<sys:String x:Key="Settings.Effective.Title">Effective from</sys:String>
+<sys:String x:Key="Settings.Effective.FirstOfMonth">From the 1st</sys:String>
+<sys:String x:Key="Settings.Effective.Today">From today</sys:String>
+<sys:String x:Key="Settings.Effective.Custom">Custom date</sys:String>
+<sys:String x:Key="Settings.Effective.Scope">Applies to salary amount and work policy; schedules start from today</sys:String>
+<sys:String x:Key="Error.EffectiveDateInvalid">⚠ Invalid custom effective date, e.g. 2026-08-01</sys:String>
 
 </ResourceDictionary>

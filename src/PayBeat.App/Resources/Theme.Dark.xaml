@@ -19,6 +19,12 @@
     <Color x:Key="CaptureBackgroundColor">#1C3A5E</Color>
     <Color x:Key="FlexGradientMidColor">#181825</Color>
 
+    <!-- V1 card system (dark): clear layering above the base, restrained green -->
+    <Color x:Key="CardColor">#2B2C3F</Color>
+    <Color x:Key="WidgetCardColor">#262738</Color>
+    <Color x:Key="WidgetHighlightColor">#2C3247</Color>
+    <Color x:Key="WarningColor">#F9E2AF</Color>
+
     <SolidColorBrush x:Key="BaseBrush" Color="{StaticResource BaseColor}"/>
     <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}"/>
     <SolidColorBrush x:Key="OverlayBrush" Color="{StaticResource OverlayColor}"/>
@@ -32,13 +38,17 @@
     <SolidColorBrush x:Key="PurpleBrush" Color="{StaticResource PurpleColor}"/>
     <SolidColorBrush x:Key="AmberBrush" Color="{StaticResource AmberColor}"/>
     <SolidColorBrush x:Key="CaptureBackgroundBrush" Color="{StaticResource CaptureBackgroundColor}"/>
+    <SolidColorBrush x:Key="CardBrush" Color="{StaticResource CardColor}"/>
+    <SolidColorBrush x:Key="WidgetCardBrush" Color="{StaticResource WidgetCardColor}"/>
+    <SolidColorBrush x:Key="WidgetHighlightBrush" Color="{StaticResource WidgetHighlightColor}"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
 
     <!-- Status tag brushes (translucent fills over the base) -->
-    <SolidColorBrush x:Key="TagRestBrush" Color="#40F38BA8"/>
-    <SolidColorBrush x:Key="TagHolidayBrush" Color="#40F9E2AF"/>
-    <SolidColorBrush x:Key="TagMakeupBrush" Color="#4089B4FA"/>
-    <SolidColorBrush x:Key="TagPtoBrush" Color="#40FAB387"/>
-    <SolidColorBrush x:Key="TagLeaveBrush" Color="#40CBA6F7"/>
-    <SolidColorBrush x:Key="TagWorkBrush" Color="#40A6E3A1"/>
+    <SolidColorBrush x:Key="TagRestBrush" Color="#2BF38BA8"/>
+    <SolidColorBrush x:Key="TagHolidayBrush" Color="#33F9E2AF"/>
+    <SolidColorBrush x:Key="TagMakeupBrush" Color="#3389B4FA"/>
+    <SolidColorBrush x:Key="TagPtoBrush" Color="#33FAB387"/>
+    <SolidColorBrush x:Key="TagLeaveBrush" Color="#33CBA6F7"/>
+    <SolidColorBrush x:Key="TagWorkBrush" Color="#33A6E3A1"/>
 
 </ResourceDictionary>

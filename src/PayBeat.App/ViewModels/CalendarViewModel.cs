@@ -15,6 +15,12 @@ public class CalendarDayVm
     public bool IsToday { get; init; }
     public DayStatus Status { get; init; }
     public bool HasLeave { get; init; }
+
+    /// <summary>Whether the user set this day's status manually (calendar override).</summary>
+    public bool HasOverride { get; init; }
+
+    /// <summary>Tooltip for the manual-override badge.</summary>
+    public string OverrideTip => LocalizationService.Get("Calendar.ManualBadge");
     public string StatusKey => Status switch { DayStatus.Work => "Calendar.Legend.Work", DayStatus.Rest => "Calendar.Legend.Rest", DayStatus.PublicHoliday => "Calendar.Legend.Holiday", DayStatus.MakeupWork => "Calendar.Legend.Makeup", DayStatus.PaidTimeOff => "Calendar.Legend.Pto", DayStatus.Leave => "Calendar.Legend.Leave", _ => "Calendar.Legend.Work" };
     public string Tag => Status switch { DayStatus.Work => "", DayStatus.Rest => LocalizationService.Get("Calendar.Legend.Rest"), DayStatus.PublicHoliday => LocalizationService.Get("Calendar.Status.Holiday"), DayStatus.MakeupWork => LocalizationService.Get("Calendar.Legend.Makeup"), DayStatus.PaidTimeOff => LocalizationService.Get("Calendar.Legend.Pto"), DayStatus.Leave => LocalizationService.Get("Calendar.Legend.Leave"), _ => "" };
     public bool ShowDot => IsCurrentMonth && Status == DayStatus.Work;
@@ -75,7 +81,7 @@ public class CalendarViewModel : ViewModelBase
     {
         var currentSettings = _draft != null ? _draft.Base : _store.CurrentSettings;
         var existing = currentSettings.Overrides.TryGetValue(day.Date.ToString("yyyy-MM-dd"), out var ov) ? ov : null;
-        var editor = new DayEditorWindow(day.Date, existing);
+        var editor = new DayEditorWindow(day.Date, existing, _config);
         editor.ShowDialog();
 
         if (editor.Result is { } result)
@@ -100,7 +106,7 @@ public class CalendarViewModel : ViewModelBase
         {
             var date = gridStart.AddDays(i);
             var status = _config.ResolveDayStatus(date);
-            cells.Add(new CalendarDayVm { Owner = this, Date = date, IsCurrentMonth = date.Month == _displayMonth.Month, IsToday = date == today, Status = status, HasLeave = _config.ResolveLeave(date) is not null });
+            cells.Add(new CalendarDayVm { Owner = this, Date = date, IsCurrentMonth = date.Month == _displayMonth.Month, IsToday = date == today, Status = status, HasLeave = _config.ResolveLeave(date) is not null, HasOverride = _config.Overrides.ContainsKey(date) });
         }
         Days = cells;
     }

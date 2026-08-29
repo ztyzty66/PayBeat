@@ -217,5 +217,35 @@
     <sys:String x:Key="Notification.EndOfDayBody">{0} minutes until the end of the workday.</sys:String>
     <sys:String x:Key="Notification.UpdateAvailableTitle">Update available</sys:String>
     <sys:String x:Key="Notification.UpdateAvailableBody">今日薪动 v{0} 已发布，打开"关于"窗口下载。</sys:String>
+<sys:String x:Key="Schedule.LunchShort">Lunch {0} – {1}</sys:String>
+<sys:String x:Key="Schedule.EffectiveFromShort">from {0}</sys:String>
+<sys:String x:Key="Schedule.ActiveBadge">✅ In use</sys:String>
+<sys:String x:Key="Schedule.NotActiveHint">Activate to apply</sys:String>
+<sys:String x:Key="Calendar.Source.Label">Source</sys:String>
+<sys:String x:Key="Calendar.Source.Status">Current status</sys:String>
+<sys:String x:Key="Calendar.Source.ManualOverride">Set manually</sys:String>
+<sys:String x:Key="Calendar.Source.PublicHoliday">Public holiday</sys:String>
+<sys:String x:Key="Calendar.Source.MakeupWork">Makeup workday</sys:String>
+<sys:String x:Key="Calendar.Source.WeekPolicy">Work policy</sys:String>
+<sys:String x:Key="Calendar.Source.DefaultRule">Default rule</sys:String>
+<sys:String x:Key="Calendar.ManualBadge">Manual</sys:String>
+<sys:String x:Key="Settings.Card.Pay">Salary</sys:String>
+<sys:String x:Key="Settings.Card.Work">Work policy</sys:String>
+<sys:String x:Key="Settings.Card.Schedule">Schedule</sys:String>
+<sys:String x:Key="Settings.Card.Info">Note</sys:String>
+<sys:String x:Key="Settings.Info.Text">Salary, work policy and schedules apply from the chosen effective date; history is never rewritten.</sys:String>
+<sys:String x:Key="Display.Card.Widget">Widget</sys:String>
+<sys:String x:Key="Display.Card.Appearance">Appearance</sys:String>
+<sys:String x:Key="Display.Card.Refresh">Refresh</sys:String>
+<sys:String x:Key="Display.RefreshHint">Shorter intervals refresh the amount more often at slightly higher power use.</sys:String>
+<sys:String x:Key="System.Card.Startup">Startup &amp; reminders</sys:String>
+<sys:String x:Key="System.Card.Hotkey">Hotkey</sys:String>
+<sys:String x:Key="System.Card.Language">Language</sys:String>
+<sys:String x:Key="System.Card.About">About</sys:String>
+<sys:String x:Key="About.Tagline">A lightweight desktop tool that shows your pay progress in real time.</sys:String>
+<sys:String x:Key="View.TodayTarget">Today's target</sys:String>
+<sys:String x:Key="View.RestTitle">😴 Day off</sys:String>
+<sys:String x:Key="Schedule.ActiveHint">Currently effective. Select another schedule and press "Set as current" to switch.</sys:String>
+<sys:String x:Key="Schedule.LunchLabel">Lunch</sys:String>
 
 </ResourceDictionary>

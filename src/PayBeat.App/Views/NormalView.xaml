@@ -2,140 +2,152 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Normal card: gradient panel with earned/target, progress, worked & remaining stats. -->
+    <!-- Normal card: clean neutral surface, a whisper of cool light top-left, green as the
+         single accent. Amount is the visual anchor; everything else stays quiet. -->
     <Border CornerRadius="16"
             BorderThickness="1"
             BorderBrush="{DynamicResource OverlayBrush}"
             Width="340"
-            Padding="22,16,22,18">
-        <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="{DynamicResource AccentGradientFromColor}" Offset="0"/>
-                <GradientStop Color="{DynamicResource BaseColor}" Offset="0.45"/>
-                <GradientStop Color="{DynamicResource FlexGradientMidColor}" Offset="1"/>
-            </LinearGradientBrush>
-        </Border.Background>
+            Background="{DynamicResource WidgetCardBrush}"
+            Padding="22,18,22,18">
         <Border.Effect>
-            <DropShadowEffect Color="#000000" Opacity="0.45" BlurRadius="22" ShadowDepth="0"/>
+            <DropShadowEffect Color="#000000" Opacity="0.28" BlurRadius="18" ShadowDepth="0"/>
         </Border.Effect>
 
-        <StackPanel>
+        <Grid>
+            <!-- Very light cool highlight, top-left only (no full-surface gradient) -->
+            <Border CornerRadius="16" IsHitTestVisible="False" Opacity="0.55">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0.6,0.55">
+                        <GradientStop Color="{DynamicResource WidgetHighlightColor}" Offset="0"/>
+                        <GradientStop Color="{DynamicResource WidgetCardColor}" Offset="0.55"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+            </Border>
 
-            <!-- Header: title + actions -->
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="{DynamicResource View.EarnedToday}"
-                           Foreground="{DynamicResource SubtextBrush}"
-                           FontFamily="Segoe UI" FontSize="12"/>
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Command="{Binding OpenSettingsCommand}"
-                            FontFamily="Segoe MDL2 Assets" FontSize="12"
-                            Content="&#xE713;"
-                            Background="Transparent"
-                            Foreground="{DynamicResource SubtextBrush}"
-                            Padding="6,3"/>
-                    <Button Command="{Binding SetNoneModeCommand}"
-                            FontFamily="Segoe MDL2 Assets" FontSize="12"
-                            Content="&#xE711;"
-                            Background="Transparent"
-                            Foreground="{DynamicResource SubtextBrush}"
-                            Padding="6,3" Margin="4,0,0,0"/>
+            <StackPanel>
+
+                <!-- Header: label + actions -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{DynamicResource View.EarnedToday}"
+                               Foreground="{DynamicResource SubtextBrush}"
+                               FontFamily="Segoe UI" FontSize="12"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Command="{Binding OpenSettingsCommand}"
+                                FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol" FontSize="12"
+                                Content="&#xE713;"
+                                Background="Transparent"
+                                Foreground="{DynamicResource SubtextBrush}"
+                                Padding="6,3"/>
+                        <Button Command="{Binding SetNoneModeCommand}"
+                                FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol" FontSize="12"
+                                Content="&#xE711;"
+                                Background="Transparent"
+                                Foreground="{DynamicResource SubtextBrush}"
+                                Padding="6,3" Margin="4,0,0,0"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Amount (work days): the single strong element -->
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0"
+                            Visibility="{Binding IsRestDay, Converter={StaticResource InvertedBoolToCollapsedConverter}, FallbackValue=Visible}">
+                    <TextBlock Text="{Binding EarnedFormatted, Mode=OneWay}"
+                               Foreground="{DynamicResource TextBrush}"
+                               FontFamily="Segoe UI" FontSize="36" FontWeight="Bold"/>
                 </StackPanel>
-            </Grid>
+                <StackPanel Orientation="Horizontal" Margin="1,2,0,0"
+                            Visibility="{Binding IsRestDay, Converter={StaticResource InvertedBoolToCollapsedConverter}, FallbackValue=Visible}">
+                    <TextBlock Text="{DynamicResource View.TodayTarget}"
+                               Foreground="{DynamicResource MutedBrush}"
+                               FontFamily="Segoe UI" FontSize="12"/>
+                    <TextBlock Text="{Binding TargetTodayFormatted, Mode=OneWay, StringFormat=' {0}'}"
+                               Foreground="{DynamicResource MutedBrush}"
+                               FontFamily="Segoe UI" FontSize="12"/>
+                </StackPanel>
 
-            <!-- Amount row (work days only) -->
-            <StackPanel Orientation="Horizontal" Margin="0,4,0,2"
-                        Visibility="{Binding IsRestDay, Converter={StaticResource InvertedBoolToCollapsedConverter}, FallbackValue=Collapsed}">
-                <TextBlock Text="{Binding EarnedFormatted, Mode=OneWay}"
-                           Foreground="{DynamicResource TextBrush}"
-                           FontFamily="Segoe UI" FontSize="38" FontWeight="Bold"/>
-                <TextBlock Text="{Binding TargetTodayFormatted, Mode=OneWay, StringFormat=/{0}}"
-                           Foreground="{DynamicResource MutedBrush}"
-                           FontFamily="Segoe UI" FontSize="15"
-                           VerticalAlignment="Bottom" Margin="6,0,0,6"/>
-            </StackPanel>
+                <!-- Rest day: calm, informative, no fake zeros -->
+                <StackPanel Margin="0,8,0,2"
+                            Visibility="{Binding IsRestDay, Converter={StaticResource BoolToCollapsedConverter}, FallbackValue=Collapsed}">
+                    <TextBlock Text="{DynamicResource View.RestTitle}"
+                               Foreground="{DynamicResource TextBrush}"
+                               FontFamily="Segoe UI" FontSize="21" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding RestDayMessage, Mode=OneWay}"
+                               Foreground="{DynamicResource MutedBrush}"
+                               FontFamily="Segoe UI" FontSize="12.5" Margin="1,4,0,0"/>
+                </StackPanel>
 
-            <!-- Rest day message -->
-            <StackPanel Margin="0,4,0,2"
-                        Visibility="{Binding IsRestDay, Converter={StaticResource BoolToCollapsedConverter}, FallbackValue=Collapsed}">
-                <TextBlock Text="😴 今天休息"
-                           Foreground="{DynamicResource TextBrush}"
-                           FontFamily="Segoe UI" FontSize="22" FontWeight="SemiBold"/>
-                <TextBlock Text="{Binding RestDayMessage, Mode=OneWay}"
-                           Foreground="{DynamicResource MutedBrush}"
-                           FontFamily="Segoe UI" FontSize="13" Margin="0,2,0,0"/>
-            </StackPanel>
-
-            <!-- Status line (lunch / rest / PTO / leave / before work) -->
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
-                <TextBlock Text="{Binding StatusText, Mode=OneWay}"
-                           Foreground="{DynamicResource GreenBrush}"
-                           FontFamily="Segoe UI" FontSize="12" FontWeight="SemiBold"/>
-                <TextBlock Text="{Binding StatusDetail, Mode=OneWay}"
-                           Foreground="{DynamicResource MutedBrush}"
-                           FontFamily="Segoe UI" FontSize="12" Margin="8,0,0,0"/>
-            </StackPanel>
-
-            <!-- Progress row -->
-            <Grid Margin="0,8,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <ProgressBar Value="{Binding Progress, Mode=OneWay}"
-                             Minimum="0" Maximum="1"
-                             Height="7"
-                             Background="{DynamicResource SurfaceBrush}"
-                             Foreground="{DynamicResource GreenBrush}"
-                             BorderThickness="0"/>
-                <TextBlock Grid.Column="1"
-                           Text="{Binding ProgressText, Mode=OneWay}"
-                           Foreground="{DynamicResource GreenBrush}"
-                           FontFamily="Segoe UI" FontSize="13" FontWeight="SemiBold"
-                           Margin="8,0,0,0"/>
-            </Grid>
-
-            <!-- Stats row -->
-            <Grid Margin="0,14,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xE817;"
-                               FontFamily="Segoe MDL2 Assets" FontSize="14"
+                <!-- Status line -->
+                <StackPanel Orientation="Horizontal" Margin="1,6,0,0">
+                    <TextBlock Text="{Binding StatusText, Mode=OneWay}"
                                Foreground="{DynamicResource GreenBrush}"
-                               VerticalAlignment="Center"/>
-                    <StackPanel Margin="8,0,0,0">
-                        <TextBlock Text="{DynamicResource View.Worked}"
-                                   Foreground="{DynamicResource MutedBrush}"
-                                   FontFamily="Segoe UI" FontSize="11"/>
-                        <TextBlock Text="{Binding ElapsedFormattedShort, Mode=OneWay}"
-                                   Foreground="{DynamicResource TextBrush}"
-                                   FontFamily="Segoe UI" FontSize="16" FontWeight="SemiBold"/>
-                    </StackPanel>
+                               FontFamily="Segoe UI" FontSize="12" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding StatusDetail, Mode=OneWay}"
+                               Foreground="{DynamicResource MutedBrush}"
+                               FontFamily="Segoe UI" FontSize="12" Margin="8,0,0,0"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <TextBlock Text="&#xE816;"
-                               FontFamily="Segoe MDL2 Assets" FontSize="14"
-                               Foreground="{DynamicResource PurpleBrush}"
-                               VerticalAlignment="Center"/>
-                    <StackPanel Margin="8,0,0,0">
-                        <TextBlock Text="{DynamicResource View.UntilEnd}"
-                                   Foreground="{DynamicResource MutedBrush}"
-                                   FontFamily="Segoe UI" FontSize="11"/>
-                        <TextBlock Text="{Binding RemainingFormattedShort, Mode=OneWay}"
-                                   Foreground="{DynamicResource TextBrush}"
-                                   FontFamily="Segoe UI" FontSize="16" FontWeight="SemiBold"/>
-                    </StackPanel>
-                </StackPanel>
-            </Grid>
+                <!-- Thin progress -->
+                <Grid Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ProgressBar Value="{Binding Progress, Mode=OneWay}"
+                                 Minimum="0" Maximum="1"
+                                 Height="4"
+                                 Background="{DynamicResource SurfaceBrush}"
+                                 Foreground="{DynamicResource GreenBrush}"
+                                 BorderThickness="0"/>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding ProgressText, Mode=OneWay}"
+                               Foreground="{DynamicResource GreenBrush}"
+                               FontFamily="Segoe UI" FontSize="12" FontWeight="SemiBold"
+                               Margin="8,0,0,0"/>
+                </Grid>
 
-        </StackPanel>
+                <!-- Bottom metrics: strictly symmetric -->
+                <Grid Margin="0,14,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE817;"
+                                   FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol" FontSize="13"
+                                   Foreground="{DynamicResource GreenBrush}"
+                                   VerticalAlignment="Center"/>
+                        <StackPanel Margin="8,0,0,0">
+                            <TextBlock Text="{DynamicResource View.Worked}"
+                                       Foreground="{DynamicResource MutedBrush}"
+                                       FontFamily="Segoe UI" FontSize="11"/>
+                            <TextBlock Text="{Binding ElapsedFormattedShort, Mode=OneWay}"
+                                       Foreground="{DynamicResource TextBrush}"
+                                       FontFamily="Segoe UI" FontSize="15" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <TextBlock Text="&#xE816;"
+                                   FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol" FontSize="13"
+                                   Foreground="{DynamicResource MutedBrush}"
+                                   VerticalAlignment="Center"/>
+                        <StackPanel Margin="8,0,0,0">
+                            <TextBlock Text="{DynamicResource View.UntilEnd}"
+                                       Foreground="{DynamicResource MutedBrush}"
+                                       FontFamily="Segoe UI" FontSize="11"/>
+                            <TextBlock Text="{Binding RemainingFormattedShort, Mode=OneWay}"
+                                       Foreground="{DynamicResource TextBrush}"
+                                       FontFamily="Segoe UI" FontSize="15" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+
+            </StackPanel>
+        </Grid>
     </Border>
 </UserControl>

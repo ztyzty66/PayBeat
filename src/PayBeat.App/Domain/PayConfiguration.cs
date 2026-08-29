@@ -1,5 +1,24 @@
 namespace PayBeat.App.Domain;
 
+/// <summary>Where a calendar day's resolved status comes from (priority chain order).</summary>
+public enum DayStatusSource
+{
+    /// <summary>User set this day manually in the calendar/day editor.</summary>
+    ManualOverride = 0,
+
+    /// <summary>Official public holiday dataset marks the day off.</summary>
+    PublicHoliday = 1,
+
+    /// <summary>Official holiday dataset marks the day as a makeup workday.</summary>
+    MakeupWork = 2,
+
+    /// <summary>Derived from the effective weekly work policy.</summary>
+    WeekPolicy = 3,
+
+    /// <summary>No policy covers the date; engine defaults apply (weekdays work, weekends rest).</summary>
+    DefaultRule = 4,
+}
+
 /// <summary>
 /// Aggregated, immutable view of all user configuration relevant to pay computation:
 /// versioned salary profiles, schedule profiles, week policies, per-day overrides, and the
@@ -95,6 +114,34 @@ public sealed record PayConfiguration
     /// <summary>Returns the leave record (if any) attached to <paramref name="date"/>.</summary>
     public LeaveRecord? ResolveLeave(DateOnly date) =>
         Overrides.TryGetValue(date, out var ov) ? ov.Leave : null;
+
+    /// <summary>
+    /// Explains why <see cref="ResolveDayStatus"/> produced its result: manual override first,
+    /// then the official holiday dataset, then the weekly work policy, then the built-in default.
+    /// Pure presentation metadata — the resolved status and its priority chain are unchanged.
+    /// </summary>
+    public DayStatusSource ResolveDayStatusSource(DateOnly date)
+    {
+        if (Overrides.ContainsKey(date))
+        {
+            return DayStatusSource.ManualOverride;
+        }
+
+        if (Holidays.Get(date) is { } holiday)
+        {
+            return holiday.IsOffDay ? DayStatusSource.PublicHoliday : DayStatusSource.MakeupWork;
+        }
+
+        foreach (var p in WeekPolicies)
+        {
+            if (p.EffectiveFrom <= date)
+            {
+                return DayStatusSource.WeekPolicy;
+            }
+        }
+
+        return DayStatusSource.DefaultRule;
+    }
 
     /// <summary>
     /// Status of <paramref name="date"/> as *planned* — i.e. ignoring absence overrides entirely.

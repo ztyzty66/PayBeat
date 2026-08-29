@@ -31,11 +31,8 @@ public partial class ScheduleManagerWindow
         Reload();
     }
 
-    private class ScheduleRow
-    {
-        public WorkScheduleProfile Schedule { get; init; } = null!;
-        public bool IsActive { get; init; }
-    }
+    // Row presentation lives in PayBeat.App.ViewModels.ScheduleRowVm so the list binds to a
+    // real template payload instead of Object.ToString().
 
     private void Reload()
     {
@@ -45,12 +42,12 @@ public partial class ScheduleManagerWindow
 
         ScheduleList.ItemsSource = _settings.ScheduleProfiles
             .OrderByDescending(s => s.EffectiveFrom)
-            .Select(s => new ScheduleRow { Schedule = s, IsActive = s.Id == activeId })
+            .Select(s => new ScheduleRowVm(s, s.Id == activeId))
             .ToList();
 
         if (_selected is not null)
         {
-            var resync = ScheduleList.ItemsSource.OfType<ScheduleRow>().FirstOrDefault(r => r.Schedule.Id == _selected.Id);
+            var resync = ScheduleList.ItemsSource.OfType<ScheduleRowVm>().FirstOrDefault(r => r.Schedule.Id == _selected.Id);
             if (resync is not null) ScheduleList.SelectedItem = resync;
         }
 
@@ -59,7 +56,7 @@ public partial class ScheduleManagerWindow
 
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (ScheduleList.SelectedItem is not ScheduleRow row) return;
+        if (ScheduleList.SelectedItem is not ScheduleRowVm row) return;
         _selected = row.Schedule;
         _isNewEntry = false;
         LoadForm(row.Schedule, row.IsActive);

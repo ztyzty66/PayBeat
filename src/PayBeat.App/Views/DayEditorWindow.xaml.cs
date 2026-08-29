@@ -20,13 +20,25 @@ public partial class DayEditorWindow
     /// <summary>Result after the dialog closes; <see langword="null"/> when cancelled.</summary>
     public EditorResult? Result { get; private set; }
 
-    /// <summary>Builds the editor for <paramref name="date"/> pre-filled from <paramref name="existing"/>.</summary>
-    public DayEditorWindow(DateOnly date, CalendarOverride? existing)
+    /// <summary>Builds the editor for <paramref name="date"/> pre-filled from <paramref name="existing"/>.
+    /// <paramref name="config"/> supplies the resolved status and its source (manual override,
+    /// holiday dataset, weekly policy or default rule) for the transparency callout.</summary>
+    public DayEditorWindow(DateOnly date, CalendarOverride? existing, PayConfiguration config)
     {
         InitializeComponent();
         _date = date;
         EditorTitle.Text = string.Format(LocalizationService.Get("Calendar.DayEditor"), date.Month, date.Day);
         Owner = Application.Current.Windows.OfType<SettingsWindow>().FirstOrDefault();
+
+        var status = config.ResolveDayStatus(date);
+        var source = config.ResolveDayStatusSource(date);
+        CurrentStatusText.Text = LocalizationService.Get(StatusKeyOf(status));
+        SourceText.Text = LocalizationService.Get(SourceKeyOf(source));
+        ClearButton.Visibility = existing is null ? Visibility.Collapsed : Visibility.Visible;
+        if (source == DayStatusSource.ManualOverride)
+        {
+            ManualBadge.Visibility = Visibility.Visible;
+        }
 
         if (existing is null)
         {
@@ -39,6 +51,25 @@ public partial class DayEditorWindow
             SelectLeaveKind(leave.Kind, leave.Start, leave.End);
         }
     }
+
+    private static string StatusKeyOf(DayStatus status) => status switch
+    {
+        DayStatus.Rest => "Calendar.Status.Rest",
+        DayStatus.PublicHoliday => "Calendar.Status.Holiday",
+        DayStatus.MakeupWork => "Calendar.Status.Makeup",
+        DayStatus.PaidTimeOff => "Calendar.Status.Pto",
+        DayStatus.Leave => "Calendar.Status.Leave",
+        _ => "Calendar.Status.Normal",
+    };
+
+    private static string SourceKeyOf(DayStatusSource source) => source switch
+    {
+        DayStatusSource.ManualOverride => "Calendar.Source.ManualOverride",
+        DayStatusSource.PublicHoliday => "Calendar.Source.PublicHoliday",
+        DayStatusSource.MakeupWork => "Calendar.Source.MakeupWork",
+        DayStatusSource.DefaultRule => "Calendar.Source.DefaultRule",
+        _ => "Calendar.Source.WeekPolicy",
+    };
 
     private void SelectStatus(DayStatus status)
     {

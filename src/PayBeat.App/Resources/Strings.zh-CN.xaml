@@ -217,5 +217,35 @@
     <sys:String x:Key="Notification.EndOfDayBody">还有 {0} 分钟下班。</sys:String>
     <sys:String x:Key="Notification.UpdateAvailableTitle">发现新版本</sys:String>
     <sys:String x:Key="Notification.UpdateAvailableBody">今日薪动 v{0} 已发布，打开“关于”窗口下载。</sys:String>
+<sys:String x:Key="Schedule.LunchShort">午休 {0} – {1}</sys:String>
+<sys:String x:Key="Schedule.EffectiveFromShort">{0} 起</sys:String>
+<sys:String x:Key="Schedule.ActiveBadge">✅ 当前使用</sys:String>
+<sys:String x:Key="Schedule.NotActiveHint">设为当前后生效</sys:String>
+<sys:String x:Key="Calendar.Source.Label">来源</sys:String>
+<sys:String x:Key="Calendar.Source.Status">当前状态</sys:String>
+<sys:String x:Key="Calendar.Source.ManualOverride">用户手动设置</sys:String>
+<sys:String x:Key="Calendar.Source.PublicHoliday">法定节假日</sys:String>
+<sys:String x:Key="Calendar.Source.MakeupWork">官方补班</sys:String>
+<sys:String x:Key="Calendar.Source.WeekPolicy">工作制度</sys:String>
+<sys:String x:Key="Calendar.Source.DefaultRule">默认规则</sys:String>
+<sys:String x:Key="Calendar.ManualBadge">手动设置</sys:String>
+<sys:String x:Key="Settings.Card.Pay">工资</sys:String>
+<sys:String x:Key="Settings.Card.Work">工作制度</sys:String>
+<sys:String x:Key="Settings.Card.Schedule">作息方案</sys:String>
+<sys:String x:Key="Settings.Card.Info">说明</sys:String>
+<sys:String x:Key="Settings.Info.Text">工资、工作制度和作息方案从指定生效日期起应用；历史数据不会被当前修改覆盖。</sys:String>
+<sys:String x:Key="Display.Card.Widget">悬浮窗</sys:String>
+<sys:String x:Key="Display.Card.Appearance">外观</sys:String>
+<sys:String x:Key="Display.Card.Refresh">刷新</sys:String>
+<sys:String x:Key="Display.RefreshHint">间隔越短，金额刷新越频繁，功耗略增。</sys:String>
+<sys:String x:Key="System.Card.Startup">启动与提醒</sys:String>
+<sys:String x:Key="System.Card.Hotkey">快捷键</sys:String>
+<sys:String x:Key="System.Card.Language">语言</sys:String>
+<sys:String x:Key="System.Card.About">关于</sys:String>
+<sys:String x:Key="About.Tagline">一个帮你实时查看今日工资进度的轻量桌面工具</sys:String>
+<sys:String x:Key="View.TodayTarget">今日目标</sys:String>
+<sys:String x:Key="View.RestTitle">😴 今天休息</sys:String>
+<sys:String x:Key="Schedule.ActiveHint">当前生效方案，切换其他方案请选择后点击「设为当前」</sys:String>
+<sys:String x:Key="Schedule.LunchLabel">午休</sys:String>
 
 </ResourceDictionary>

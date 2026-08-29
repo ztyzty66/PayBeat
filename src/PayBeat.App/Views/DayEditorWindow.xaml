@@ -61,6 +61,32 @@
                            FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
             </StackPanel>
 
+            <!-- Current status + where it comes from (override vs holiday vs work policy) -->
+            <Border Style="{StaticResource WarningCallout}" Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource OverlayBrush}" Margin="0,0,0,12">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{DynamicResource Calendar.Source.Status}" FontSize="11.5"
+                                   Foreground="{DynamicResource SubtextBrush}"/>
+                        <TextBlock x:Name="CurrentStatusText" Margin="6,0,0,0" FontSize="11.5"
+                                   FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                        <TextBlock Text="{DynamicResource Calendar.Source.Label}" FontSize="11.5"
+                                   Foreground="{DynamicResource SubtextBrush}"/>
+                        <TextBlock x:Name="SourceText" Margin="6,0,0,0" FontSize="11.5"
+                                   Foreground="{DynamicResource TextBrush}"/>
+                        <Border x:Name="ManualBadge" CornerRadius="4" Padding="6,1"
+                                   Margin="8,0,0,0" Background="{DynamicResource TagPtoBrush}"
+                                   Visibility="Collapsed" VerticalAlignment="Center">
+                            <TextBlock Text="{DynamicResource Calendar.ManualBadge}"
+                                       FontSize="10.5" Foreground="{DynamicResource OrangeBrush}"
+                                       FontWeight="SemiBold"/>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <!-- Status options -->
             <UniformGrid Columns="3">
                 <RadioButton x:Name="StatusWork" Content="{DynamicResource Calendar.Status.Normal}" Style="{StaticResource OptionButton}" GroupName="status" IsChecked="True" Checked="OnStatusChanged"/>
@@ -92,10 +118,10 @@
 
             <!-- Buttons -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="{DynamicResource Calendar.Clear}" Click="OnClear" Padding="14,7"
-                        Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource TextBrush}" Margin="0,0,8,0"/>
+                <Button x:Name="ClearButton" Content="{DynamicResource Calendar.Clear}" Click="OnClear" Padding="14,7"
+                        Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"/>
                 <Button Content="{DynamicResource Settings.Cancel}" Click="OnCancel" Padding="14,7"
-                        Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource TextBrush}" Margin="0,0,8,0"/>
+                        Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"/>
                 <Button Content="{DynamicResource Settings.Save}" Click="OnSave" Padding="16,7"
                         Background="{DynamicResource GreenBrush}" Foreground="{DynamicResource BaseBrush}" FontWeight="SemiBold"/>
             </StackPanel>

@@ -121,6 +121,11 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     public bool WorkSunday { get => _workDays.Contains(DayOfWeek.Sunday); set => SetWorkDay(DayOfWeek.Sunday, value); }
 
     public string ScheduleName { get => _scheduleName; set => SetField(ref _scheduleName, value); }
+
+    /// <summary>Name of the schedule currently effective today (read-only display in card C).</summary>
+    public string CurrentScheduleName => _config.ResolveSchedule(DateOnly.FromDateTime(DateTime.Now)) is { } s && !string.IsNullOrWhiteSpace(s.Name)
+        ? s.Name
+        : LocalizationService.Get("Salary.DefaultScheduleName");
     public ICommand ManageSchedulesCommand { get; }
     public DisplayMode DisplayMode { get => _displayMode; set { if (SetField(ref _displayMode, value)) { OnPropertyChanged(nameof(IsNormalMode)); OnPropertyChanged(nameof(IsMiniMode)); OnPropertyChanged(nameof(IsNoneMode)); OnPropertyChanged(nameof(IsFlexMode)); } } }
     public bool EnableEndOfDayReminder { get => _enableEndOfDayReminder; set { SetField(ref _enableEndOfDayReminder, value); Revalidate(); } }
@@ -221,6 +226,7 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         OnPropertyChanged(nameof(LunchBreakStart));
         OnPropertyChanged(nameof(LunchBreakEnd));
         OnPropertyChanged(nameof(ScheduleName));
+        OnPropertyChanged(nameof(CurrentScheduleName));
         _draft.RaiseChanged();
         Revalidate();
     }

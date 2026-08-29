@@ -297,7 +297,7 @@
                                                  Background="{DynamicResource SurfaceBrush}"
                                                  Foreground="{DynamicResource TextBrush}"
                                                  BorderBrush="{DynamicResource OverlayBrush}" BorderThickness="1"
-                                                 IsEnabled="{Binding IsEffectiveCustom, Mode=TwoWay}"/>
+                                                 IsEnabled="{Binding IsEffectiveCustom, Mode=OneWay}"/>
                                     </StackPanel>
                                     <TextBlock Text="{DynamicResource Settings.Effective.Scope}"
                                                Foreground="{DynamicResource MutedBrush}" FontSize="11"

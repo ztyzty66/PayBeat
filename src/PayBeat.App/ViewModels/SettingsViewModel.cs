@@ -144,7 +144,18 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     public EffectiveDateChoice Choice
     {
         get => _effectiveChoice;
-        set { if (SetField(ref _effectiveChoice, value)) Revalidate(); }
+        set
+        {
+            if (SetField(ref _effectiveChoice, value))
+            {
+                // The radio proxies derive from Choice — they must be notified so the
+                // custom-date box enables/disables when the selection changes.
+                OnPropertyChanged(nameof(IsEffectiveFirstOfMonth));
+                OnPropertyChanged(nameof(IsEffectiveToday));
+                OnPropertyChanged(nameof(IsEffectiveCustom));
+                Revalidate();
+            }
+        }
     }
 
     /// <summary>Radio proxy: 本月1日起.</summary>

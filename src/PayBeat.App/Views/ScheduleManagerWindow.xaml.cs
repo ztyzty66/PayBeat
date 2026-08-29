@@ -21,6 +21,12 @@ public partial class ScheduleManagerWindow
     private WorkScheduleProfile? _selected;
     private bool _isNewEntry;
 
+    // In-window new-schedule draft: appears as a second list card immediately ("unsaved"),
+    // joins the ConfigurationDraft when the user presses the row's save ("pending"), and is
+    // only persisted to the store by the main settings save.
+    private WorkScheduleProfile? _pendingNew;
+    private readonly HashSet<string> _pendingSavedIds = new(StringComparer.Ordinal);
+
     public ScheduleManagerWindow(ConfigurationStore store, ConfigurationDraft draft, MainViewModel mainVm)
     {
         InitializeComponent();
@@ -40,15 +46,20 @@ public partial class ScheduleManagerWindow
         _config = _draft.BuildPreviewConfiguration(_store.PayData);
         var activeId = _config.ResolveSchedule(DateOnly.FromDateTime(DateTime.Now)).Id;
 
-        ScheduleList.ItemsSource = _settings.ScheduleProfiles
-            .OrderByDescending(s => s.EffectiveFrom)
-            .Select(s => new ScheduleRowVm(s, s.Id == activeId))
-            .ToList();
+        ScheduleList.ItemsSource = ScheduleListPresenter.BuildRows(
+            _settings.ScheduleProfiles.OrderByDescending(s => s.EffectiveFrom).ToList(),
+            activeId,
+            _pendingNew,
+            _pendingSavedIds);
 
         if (_selected is not null)
         {
             var resync = ScheduleList.ItemsSource.OfType<ScheduleRowVm>().FirstOrDefault(r => r.Schedule.Id == _selected.Id);
             if (resync is not null) ScheduleList.SelectedItem = resync;
+        }
+        else if (ScheduleList.SelectedIndex < 0 && ScheduleList.Items.Count > 0)
+        {
+            ScheduleList.SelectedIndex = 0;
         }
 
         if (ScheduleList.SelectedIndex < 0 && ScheduleList.Items.Count > 0) ScheduleList.SelectedIndex = 0;
@@ -58,11 +69,11 @@ public partial class ScheduleManagerWindow
     {
         if (ScheduleList.SelectedItem is not ScheduleRowVm row) return;
         _selected = row.Schedule;
-        _isNewEntry = false;
-        LoadForm(row.Schedule, row.IsActive);
+        _isNewEntry = row.Schedule.Id == _pendingNew?.Id;
+        LoadForm(row.Schedule, row.IsActive, isPending: _isNewEntry);
     }
 
-    private void LoadForm(WorkScheduleProfile schedule, bool isActive)
+    private void LoadForm(WorkScheduleProfile schedule, bool isActive, bool isPending = false)
     {
         NameBox.Text = string.IsNullOrWhiteSpace(schedule.Name) ? LocalizationService.Get("Salary.DefaultScheduleName") : schedule.Name;
         StartTime.SelectedTime = schedule.WorkStart;
@@ -71,8 +82,9 @@ public partial class ScheduleManagerWindow
         LunchStartTime.SelectedTime = schedule.LunchBreakStart;
         LunchEndTime.SelectedTime = schedule.LunchBreakEnd;
         EffectiveFromBox.Text = schedule.EffectiveFrom.ToString("yyyy-MM-dd");
-        DeleteButton.IsEnabled = !isActive;
-        ActivateButton.IsEnabled = !isActive;
+        // An unsaved in-window draft cannot be activated or deleted yet.
+        DeleteButton.IsEnabled = !isActive && !isPending;
+        ActivateButton.IsEnabled = !isActive && !isPending;
         CurrentLabel.Visibility = isActive ? Visibility.Visible : Visibility.Collapsed;
         FormError.Text = "";
     }
@@ -96,7 +108,18 @@ public partial class ScheduleManagerWindow
         NameBox.Focus();
     }
 
-    private void OnNew(object sender, RoutedEventArgs e) => ClearForm();
+    private void OnNew(object sender, RoutedEventArgs e)
+    {
+        // Create the pending card FIRST so the user sees a second row appear immediately,
+        // then select it so the form edits the new schedule — not the active one.
+        var active = _config.ResolveSchedule(DateOnly.FromDateTime(DateTime.Now));
+        _pendingNew = ScheduleListPresenter.CreatePending(active);
+        _selected = _pendingNew;
+        _isNewEntry = true;
+        Reload();
+        LoadForm(_pendingNew, isActive: false, isPending: true);
+        NameBox.Focus();
+    }
 
     private void OnSaveSchedule(object sender, RoutedEventArgs e)
     {
@@ -152,7 +175,21 @@ public partial class ScheduleManagerWindow
 
         schedules = ProfileVersioning.DeduplicateByDate(schedules, s => s.EffectiveFrom);
         _draft.ScheduleProfiles = schedules;
-        _selected = schedules.OrderByDescending(s => s.EffectiveFrom).FirstOrDefault(s => s.Name == name);
+        if (_selected is null)
+        {
+            Reload();
+            return;
+        }
+        var savedId = _selected.Id;
+        if (_pendingNew is not null && savedId == _pendingNew.Id)
+        {
+            // The pending card graduated into the draft: it now shows "pending" until the
+            // main settings save commits it.
+            _pendingSavedIds.Add(savedId);
+            _pendingNew = null;
+        }
+
+        _selected = schedules.First(s => s.Id == savedId);
         _isNewEntry = false;
         Reload();
     }
@@ -182,6 +219,8 @@ public partial class ScheduleManagerWindow
         if (_selected.Id == activeId) { FormError.Text = "⚠ 当前使用中的方案不能删除"; return; }
         var schedules = _settings.ScheduleProfiles.Where(s => s.Id != _selected.Id).ToList();
         _draft.ScheduleProfiles = schedules;
+        _pendingSavedIds.Remove(_selected.Id);
+        _selected = null;
         Reload();
         ClearForm();
     }

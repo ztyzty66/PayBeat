@@ -99,7 +99,7 @@
                 <StackPanel Orientation="Horizontal" Margin="2,14,0,0">
                     <TextBlock Text="{Binding StatusText, Mode=OneWay}"
                                Foreground="{DynamicResource GreenBrush}"
-                               FontFamily="Segoe UI" FontSize="16" FontWeight="SemiBold"/>
+                               FontFamily="Segoe UI, Segoe UI Emoji, Segoe UI Symbol" FontSize="16" FontWeight="SemiBold"/>
                     <TextBlock Text="{Binding StatusDetail, Mode=OneWay}"
                                Foreground="{DynamicResource MutedBrush}"
                                FontFamily="Segoe UI" FontSize="16" Margin="10,0,0,0"/>
@@ -181,7 +181,7 @@
                      HorizontalAlignment="Center" VerticalAlignment="Bottom"
                      Margin="0,0,0,64">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE817;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                <TextBlock Text="&#x23F1;" FontFamily="Segoe UI Emoji, Segoe UI Symbol" FontSize="20"
                            Foreground="{DynamicResource GreenBrush}" VerticalAlignment="Center"/>
                 <StackPanel Margin="12,0,0,0">
                     <TextBlock Text="{DynamicResource View.Worked}"
@@ -192,7 +192,7 @@
                 </StackPanel>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE816;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                <TextBlock Text="&#x23F3;" FontFamily="Segoe UI Emoji, Segoe UI Symbol" FontSize="20"
                            Foreground="{DynamicResource PurpleBrush}" VerticalAlignment="Center"/>
                 <StackPanel Margin="12,0,0,0">
                     <TextBlock Text="{DynamicResource View.UntilEnd}"
@@ -203,7 +203,7 @@
                 </StackPanel>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE817;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                <TextBlock Text="💰" FontFamily="Segoe UI Emoji, Segoe UI Symbol" FontSize="18"
                            Foreground="{DynamicResource AmberBrush}" VerticalAlignment="Center"/>
                 <StackPanel Margin="12,0,0,0">
                     <TextBlock Text="{DynamicResource View.MonthEarned}"
@@ -214,7 +214,7 @@
                 </StackPanel>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE816;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                <TextBlock Text="📅" FontFamily="Segoe UI Emoji, Segoe UI Symbol" FontSize="18"
                            Foreground="{DynamicResource BlueBrush}" VerticalAlignment="Center"/>
                 <StackPanel Margin="12,0,0,0">
                     <TextBlock Text="{DynamicResource View.WorkdaysProgress}"

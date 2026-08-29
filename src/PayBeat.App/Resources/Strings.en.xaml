@@ -253,5 +253,18 @@
 <sys:String x:Key="Settings.Effective.Custom">Custom date</sys:String>
 <sys:String x:Key="Settings.Effective.Scope">Applies to salary amount and work policy; schedules start from today</sys:String>
 <sys:String x:Key="Error.EffectiveDateInvalid">⚠ Invalid custom effective date, e.g. 2026-08-01</sys:String>
+<sys:String x:Key="Status.Fish">🐟 Earning now</sys:String>
+<sys:String x:Key="Status.AlmostDone">⏳ Almost there</sys:String>
+<sys:String x:Key="Status.DoneEmoji">🎉 Day complete</sys:String>
+<sys:String x:Key="Status.LunchEmoji">🍜 Lunch break</sys:String>
+<sys:String x:Key="Status.BeforeWorkEmoji">☕ Not started yet</sys:String>
+<sys:String x:Key="Status.RestEmoji">😴 Day off</sys:String>
+<sys:String x:Key="Status.HolidayEmoji">😴 Paid holiday</sys:String>
+<sys:String x:Key="Status.PtoEmoji">😎 Paid time off · relax, it counts</sys:String>
+<sys:String x:Key="Status.LeaveEmoji">🌴 On leave today</sys:String>
+<sys:String x:Key="Status.LeavePartial">🌴 Partial leave today</sys:String>
+<sys:String x:Key="Schedule.NewName">🆕 New schedule</sys:String>
+<sys:String x:Key="Schedule.BadgeUnsaved">Unsaved</sys:String>
+<sys:String x:Key="Schedule.BadgePending">Pending</sys:String>
 
 </ResourceDictionary>

@@ -28,14 +28,24 @@
                                    Foreground="{DynamicResource TextBrush}"
                                    FontSize="13" FontWeight="SemiBold"
                                    TextTrimming="CharacterEllipsis"/>
-                        <!-- Active badge: distinct from selection highlight -->
-                        <Border Grid.Column="1" CornerRadius="5" Padding="7,2"
-                                Background="{DynamicResource TagWorkBrush}"
-                                Visibility="{Binding ActiveBadgeVisible, Mode=OneWay}">
-                            <TextBlock Text="{Binding ActiveText}" FontSize="10.5"
-                                       Foreground="{DynamicResource GreenBrush}"
-                                       FontWeight="SemiBold"/>
-                        </Border>
+                        <!-- Badges: ✅ 当前使用 (active) vs 未保存/待提交 (draft state) —
+                             mutually exclusive, and distinct from the selection highlight -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Border CornerRadius="5" Padding="7,2"
+                                    Background="{DynamicResource TagWorkBrush}"
+                                    Visibility="{Binding ActiveBadgeVisible, Mode=OneWay}">
+                                <TextBlock Text="{Binding ActiveText}" FontSize="10.5"
+                                           Foreground="{DynamicResource GreenBrush}"
+                                           FontWeight="SemiBold"/>
+                            </Border>
+                            <Border CornerRadius="5" Padding="7,2"
+                                    Background="{DynamicResource TagPtoBrush}"
+                                    Visibility="{Binding BadgeVisible, Mode=OneWay}">
+                                <TextBlock Text="{Binding BadgeText}" FontSize="10.5"
+                                           Foreground="{DynamicResource OrangeBrush}"
+                                           FontWeight="SemiBold"/>
+                            </Border>
+                        </StackPanel>
                     </Grid>
                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                         <TextBlock Text="{Binding TimeText}" FontSize="12"

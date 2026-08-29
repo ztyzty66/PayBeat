@@ -10,12 +10,25 @@ namespace PayBeat.App.ViewModels;
 /// </summary>
 public class ScheduleRowVm
 {
-    /// <summary>Creates the row from a schedule profile and whether it is the current one.</summary>
-    public ScheduleRowVm(WorkScheduleProfile schedule, bool isActive)
+    /// <summary>Creates the row from a schedule profile, whether it is the current one, and an
+    /// optional localization badge key (unsaved / pending) for newly drafted schedules.</summary>
+    public ScheduleRowVm(WorkScheduleProfile schedule, bool isActive, string? badge = null)
     {
         Schedule = schedule;
         IsActive = isActive;
+        BadgeKey = badge;
     }
+
+    /// <summary>Badge key (e.g. unsaved / pending) or <see langword="null"/> for settled rows.</summary>
+    public string? BadgeKey { get; }
+
+    /// <summary>Localized badge text; empty when the row has no badge.</summary>
+    public string BadgeText => BadgeKey is null ? string.Empty : LocalizationService.Get(BadgeKey);
+
+    /// <summary>Visibility hint for the badge chip in XAML.</summary>
+    public System.Windows.Visibility BadgeVisible => BadgeKey is null
+        ? System.Windows.Visibility.Collapsed
+        : System.Windows.Visibility.Visible;
 
     /// <summary>The underlying schedule profile (used for editing/activation).</summary>
     public WorkScheduleProfile Schedule { get; }

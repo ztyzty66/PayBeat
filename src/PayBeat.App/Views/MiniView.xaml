@@ -15,7 +15,8 @@
         <Border.ToolTip>
             <ToolTip>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{Binding ProgressText, Mode=OneWay}"
+                    <TextBlock Text="{Binding StatusText, Mode=OneWay}"
+                               FontFamily="Segoe UI, Segoe UI Emoji, Segoe UI Symbol"
                                Foreground="{DynamicResource GreenBrush}" FontWeight="SemiBold"/>
                     <TextBlock Text="  ·  " Foreground="{DynamicResource MutedBrush}"/>
                     <TextBlock Text="{Binding RemainingFormattedShort, Mode=OneWay, StringFormat=距下班 {0}}"
@@ -29,9 +30,9 @@
             <!-- Currency badge -->
             <Border Width="26" Height="26" CornerRadius="13"
                     Background="{DynamicResource TagWorkBrush}" VerticalAlignment="Center">
-                <TextBlock Text="{Binding Currency, Mode=OneWay}"
-                           Foreground="{DynamicResource GreenBrush}"
-                           FontSize="13" FontWeight="Bold"
+                <TextBlock Text="{Binding MiniStatusGlyph, Mode=OneWay}"
+                           FontFamily="Segoe UI Emoji, Segoe UI Symbol"
+                           FontSize="12"
                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
 

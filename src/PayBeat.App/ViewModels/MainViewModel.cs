@@ -84,6 +84,15 @@ public class MainViewModel : ViewModelBase, IDisposable
     public bool IsRestDay => _today.Phase == DayPhase.OffDay;
     public string RestDayMessage => LocalizationService.Get("Status.RestDayMessage");
 
+    /// <summary>Single emoji for the mini pill: 💰 earning, 😴 rest/holiday, 😎 paid time off.
+    /// Rendered with Segoe UI Emoji so the glyph never falls back to a tofu box.</summary>
+    public string MiniStatusGlyph => _today.Phase switch
+    {
+        DayPhase.PaidTimeOff => "😎",
+        DayPhase.OffDay => "😴",
+        _ => "💰",
+    };
+
     public string StatusKey
     {
         get => _statusKey;
@@ -290,35 +299,51 @@ public class MainViewModel : ViewModelBase, IDisposable
     private void UpdateStatusTexts(DateTime now)
     {
         var schedule = _today.Computation.Schedule;
+        var computation = _today.Computation;
+
+        // Stable per-state emoji copy — only changes with the work-day phase, never per tick.
         switch (_today.Phase)
         {
             case DayPhase.OffDay:
-                StatusKey = _today.Computation.Status == DayStatus.PublicHoliday ? "Status.Holiday" : "Status.Rest";
+                StatusKey = computation.Status == DayStatus.PublicHoliday ? "Status.HolidayEmoji" : "Status.RestEmoji";
                 StatusDetail = string.Empty;
                 break;
             case DayPhase.PaidTimeOff:
-                StatusKey = "Status.Pto";
+                StatusKey = "Status.PtoEmoji";
                 StatusDetail = string.Empty;
                 break;
             case DayPhase.BeforeWork:
-                StatusKey = "Status.BeforeWork";
+                StatusKey = "Status.BeforeWorkEmoji";
                 var minutes = (int)Math.Round((SecondsOf(schedule.WorkStart) - SecondsOf(TimeOnly.FromDateTime(now))) / 60d);
                 StatusDetail = string.Format(LocalizationService.Get("Status.UntilStart"), Math.Max(minutes, 0));
                 break;
             case DayPhase.Lunch:
-                StatusKey = "Status.Lunch";
+                StatusKey = "Status.LunchEmoji";
                 StatusDetail = string.Format(LocalizationService.Get("Status.ResumeAt"), schedule.LunchSpan()?.End.ToString("HH:mm") ?? string.Empty);
                 break;
             case DayPhase.AfterWork:
-                StatusKey = _today.Computation.Status == DayStatus.Leave ? "Status.Leave" : "Status.Done";
+                StatusKey = computation.Status == DayStatus.Leave ? "Status.LeaveEmoji" : "Status.DoneEmoji";
                 StatusDetail = string.Empty;
                 break;
             case DayPhase.Working:
-                StatusKey = _today.Computation.Status == DayStatus.Leave ? "Status.Leave" : "Status.Working";
+                if (computation.Status == DayStatus.Leave)
+                {
+                    // Partial-day leave still accrues for the remaining paid time.
+                    var partial = computation.LeaveSeconds < computation.TotalEffectiveSeconds;
+                    StatusKey = partial ? "Status.LeavePartial" : "Status.LeaveEmoji";
+                }
+                else if (_today.RemainingSeconds > 0 && _today.RemainingSeconds <= 3600)
+                {
+                    StatusKey = "Status.AlmostDone";
+                }
+                else
+                {
+                    StatusKey = "Status.Fish";
+                }
                 StatusDetail = string.Empty;
                 break;
             default:
-                StatusKey = "Status.Working";
+                StatusKey = "Status.Fish";
                 StatusDetail = string.Empty;
                 break;
         }

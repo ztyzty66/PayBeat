@@ -253,5 +253,18 @@
 <sys:String x:Key="Settings.Effective.Custom">自定义日期</sys:String>
 <sys:String x:Key="Settings.Effective.Scope">适用于工资金额与工作制度；作息方案从今天起生效</sys:String>
 <sys:String x:Key="Error.EffectiveDateInvalid">⚠ 自定义生效日期格式无效，例如 2026-08-01</sys:String>
+<sys:String x:Key="Status.Fish">🐟 摸鱼赚钱中</sys:String>
+<sys:String x:Key="Status.AlmostDone">⏳ 马上可以下班啦</sys:String>
+<sys:String x:Key="Status.DoneEmoji">🎉 今日份工资进度完成</sys:String>
+<sys:String x:Key="Status.LunchEmoji">🍜 午休中</sys:String>
+<sys:String x:Key="Status.BeforeWorkEmoji">☕ 还没开工</sys:String>
+<sys:String x:Key="Status.RestEmoji">😴 今天休息</sys:String>
+<sys:String x:Key="Status.HolidayEmoji">😴 带薪假日</sys:String>
+<sys:String x:Key="Status.PtoEmoji">😎 带薪调休 · 今天躺着也算工资</sys:String>
+<sys:String x:Key="Status.LeaveEmoji">🌴 今日请假</sys:String>
+<sys:String x:Key="Status.LeavePartial">🌴 今日有请假</sys:String>
+<sys:String x:Key="Schedule.NewName">🆕 新作息方案</sys:String>
+<sys:String x:Key="Schedule.BadgeUnsaved">未保存</sys:String>
+<sys:String x:Key="Schedule.BadgePending">待提交</sys:String>
 
 </ResourceDictionary>

@@ -35,14 +35,24 @@
                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
 
-            <!-- Amount -->
-            <TextBlock Text="{Binding EarnedFormatted, Mode=OneWay}"
-                       Foreground="{DynamicResource TextBrush}"
+            <!-- Amount (rest day shows 😴 休息) -->
+            <TextBlock Foreground="{DynamicResource TextBrush}"
                        FontFamily="Segoe UI"
                        FontSize="17"
                        FontWeight="Bold"
                        VerticalAlignment="Center"
-                       Margin="8,0,8,0"/>
+                       Margin="8,0,8,0">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Text" Value="{Binding EarnedFormatted, Mode=OneWay}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsRestDay}" Value="True">
+                                <Setter Property="Text" Value="😴 休息"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
 
             <!-- Actions -->
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Opacity="0.75">

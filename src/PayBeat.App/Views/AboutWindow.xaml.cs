@@ -6,18 +6,16 @@ using System.Windows.Navigation;
 namespace PayBeat.App.Views;
 
 /// <summary>
-/// Displays app version plus attribution for the original project. Update checks against the
-/// upstream repository are intentionally disabled in this fork build, so users are never
-/// prompted to "update" back over this version.
+/// Displays app version plus attribution for the original project.
 /// </summary>
 public partial class AboutWindow
 {
-    private readonly SettingsService _settingsService;
+    private readonly ConfigurationStore _store;
 
     /// <summary>Initializes the about window and populates the version label.</summary>
-    public AboutWindow(SettingsService settingsService)
+    public AboutWindow(ConfigurationStore store)
     {
-        _settingsService = settingsService;
+        _store = store;
         InitializeComponent();
         VersionText.Text = $"{LocalizationService.Get("About.Version")} v{AppVersion.Current}";
     }

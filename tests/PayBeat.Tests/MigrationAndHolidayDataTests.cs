@@ -24,7 +24,7 @@ public class MigrationAndHolidayDataTests
 
         var migrated = SettingsService.Migrate(legacy);
 
-        Assert.Equal(2, migrated.ConfigVersion);
+        Assert.Equal(3, migrated.ConfigVersion);
         var salary = Assert.Single(migrated.SalaryProfiles);
         Assert.Equal(SalaryMode.Daily, salary.Mode);
         Assert.Equal(500m, salary.DailyAmount);

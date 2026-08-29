@@ -47,7 +47,7 @@
     <sys:String x:Key="Status.UntilStart">Starts in {0} min</sys:String>
 
     <!-- Settings window -->
-    <sys:String x:Key="Settings.WindowTitle">PayBeat Settings</sys:String>
+    <sys:String x:Key="Settings.WindowTitle">今日薪动 设置</sys:String>
     <sys:String x:Key="Settings.Title">Settings</sys:String>
     <sys:String x:Key="Settings.Cancel">Cancel</sys:String>
     <sys:String x:Key="Settings.Save">Save</sys:String>
@@ -94,6 +94,8 @@
     <sys:String x:Key="Schedule.DeleteDisabled">The schedule in use cannot be deleted</sys:String>
     <sys:String x:Key="Schedule.ConfirmDelete">Delete schedule "{0}"?</sys:String>
     <sys:String x:Key="Schedule.Close">Close</sys:String>
+    <sys:String x:Key="Schedule.Activate">Set as Current</sys:String>
+    <sys:String x:Key="Schedule.CurrentlyActive">✓ Currently Active</sys:String>
 
     <!-- Calendar page -->
     <sys:String x:Key="Day.Mon">Mo</sys:String>
@@ -156,21 +158,21 @@
     <sys:String x:Key="Settings.HotkeyHint">Click, then press a key combination</sys:String>
     <sys:String x:Key="Settings.HotkeyCapturing">Press a key combination...</sys:String>
     <sys:String x:Key="Settings.Section.About">About</sys:String>
-    <sys:String x:Key="Settings.BasedOn">Based on PayBeat · original project by coldhighsun · MIT License</sys:String>
+    <sys:String x:Key="Settings.BasedOn">基于开源项目 PayBeat 二次开发 · original project by coldhighsun · MIT License</sys:String>
     <sys:String x:Key="Settings.OpenOriginal">Visit original project</sys:String>
 
     <!-- About window -->
-    <sys:String x:Key="About.WindowTitle">About PayBeat</sys:String>
+    <sys:String x:Key="About.WindowTitle">关于今日薪动</sys:String>
     <sys:String x:Key="About.Description">A lightweight floating widget that shows your earnings in real time.</sys:String>
     <sys:String x:Key="About.Author">Author</sys:String>
     <sys:String x:Key="About.License">License</sys:String>
     <sys:String x:Key="About.GitHub">GitHub</sys:String>
     <sys:String x:Key="About.Close">Close</sys:String>
-    <sys:String x:Key="About.BasedOn">Based on PayBeat by coldhighsun (MIT)</sys:String>
+    <sys:String x:Key="About.BasedOn">基于开源项目 PayBeat 二次开发</sys:String>
     <sys:String x:Key="About.Version">Version</sys:String>
 
     <!-- First run -->
-    <sys:String x:Key="FirstRun.Title">Welcome to PayBeat</sys:String>
+    <sys:String x:Key="FirstRun.Title">欢迎使用今日薪动</sys:String>
     <sys:String x:Key="FirstRun.Subtitle">A few quick settings, then watch today's earnings grow</sys:String>
     <sys:String x:Key="FirstRun.Start">Get started</sys:String>
     <sys:String x:Key="FirstRun.Lunch">Lunch break (unpaid)</sys:String>
@@ -194,7 +196,7 @@
     <sys:String x:Key="Error.SalaryPositive">Amount must be greater than 0</sys:String>
     <sys:String x:Key="Error.SalaryTooLarge">Amount cannot exceed 99,999,999</sys:String>
     <sys:String x:Key="Error.WorkEndAfterStart">End time must be after start time (overnight shifts are not supported)</sys:String>
-    <sys:String x:Key="Error.AlreadyRunning">PayBeat is already running.</sys:String>
+    <sys:String x:Key="Error.AlreadyRunning">今日薪动已在运行中。</sys:String>
     <sys:String x:Key="Error.HotkeyConflict">Failed to register hotkey {0}; it may be in use by another program.</sys:String>
     <sys:String x:Key="Error.LunchBreakInvalid">Lunch break must be inside the work window, and end after it starts</sys:String>
     <sys:String x:Key="Error.MilestoneAmountPositive">Milestone amount must be greater than 0</sys:String>
@@ -211,6 +213,6 @@
     <sys:String x:Key="Notification.EndOfDayTitle">Almost there</sys:String>
     <sys:String x:Key="Notification.EndOfDayBody">{0} minutes until the end of the workday.</sys:String>
     <sys:String x:Key="Notification.UpdateAvailableTitle">Update available</sys:String>
-    <sys:String x:Key="Notification.UpdateAvailableBody">PayBeat v{0} has been released; open "About" to download.</sys:String>
+    <sys:String x:Key="Notification.UpdateAvailableBody">今日薪动 v{0} 已发布，打开"关于"窗口下载。</sys:String>
 
 </ResourceDictionary>

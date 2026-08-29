@@ -46,8 +46,9 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Amount row -->
-            <StackPanel Orientation="Horizontal" Margin="0,4,0,2">
+            <!-- Amount row (work days) -->
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,2"
+                        Visibility="{Binding IsRestDay, Converter={StaticResource BoolToCollapsedConverter}, FallbackValue=Collapsed}">
                 <TextBlock Text="{Binding EarnedFormatted, Mode=OneWay}"
                            Foreground="{DynamicResource TextBrush}"
                            FontFamily="Segoe UI" FontSize="38" FontWeight="Bold"/>
@@ -55,6 +56,17 @@
                            Foreground="{DynamicResource MutedBrush}"
                            FontFamily="Segoe UI" FontSize="15"
                            VerticalAlignment="Bottom" Margin="6,0,0,6"/>
+            </StackPanel>
+
+            <!-- Rest day message -->
+            <StackPanel Margin="0,4,0,2"
+                        Visibility="{Binding IsRestDay, Converter={StaticResource InvertedBoolToCollapsedConverter}, FallbackValue=Collapsed}">
+                <TextBlock Text="😴 今天休息"
+                           Foreground="{DynamicResource TextBrush}"
+                           FontFamily="Segoe UI" FontSize="22" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding RestDayMessage, Mode=OneWay}"
+                           Foreground="{DynamicResource MutedBrush}"
+                           FontFamily="Segoe UI" FontSize="13" Margin="0,2,0,0"/>
             </StackPanel>
 
             <!-- Status line (lunch / rest / PTO / leave / before work) -->

@@ -47,7 +47,7 @@
     <sys:String x:Key="Status.UntilStart">距上班 {0} 分钟</sys:String>
 
     <!-- Settings window -->
-    <sys:String x:Key="Settings.WindowTitle">PayBeat 设置</sys:String>
+    <sys:String x:Key="Settings.WindowTitle">今日薪动 设置</sys:String>
     <sys:String x:Key="Settings.Title">设置</sys:String>
     <sys:String x:Key="Settings.Cancel">取消</sys:String>
     <sys:String x:Key="Settings.Save">保存</sys:String>
@@ -94,6 +94,8 @@
     <sys:String x:Key="Schedule.DeleteDisabled">使用中的方案不能删除</sys:String>
     <sys:String x:Key="Schedule.ConfirmDelete">确定删除方案“{0}”吗？</sys:String>
     <sys:String x:Key="Schedule.Close">关闭</sys:String>
+    <sys:String x:Key="Schedule.Activate">设为当前</sys:String>
+    <sys:String x:Key="Schedule.CurrentlyActive">✓ 当前使用中</sys:String>
 
     <!-- Calendar page -->
     <sys:String x:Key="Day.Mon">一</sys:String>
@@ -156,21 +158,21 @@
     <sys:String x:Key="Settings.HotkeyHint">点击后输入快捷键组合</sys:String>
     <sys:String x:Key="Settings.HotkeyCapturing">请输入快捷键组合...</sys:String>
     <sys:String x:Key="Settings.Section.About">关于</sys:String>
-    <sys:String x:Key="Settings.BasedOn">基于 PayBeat 二次开发 · 原项目作者 coldhighsun · MIT License</sys:String>
+    <sys:String x:Key="Settings.BasedOn">基于开源项目 PayBeat 二次开发 · 原项目作者 coldhighsun · MIT License</sys:String>
     <sys:String x:Key="Settings.OpenOriginal">访问原项目</sys:String>
 
     <!-- About window -->
-    <sys:String x:Key="About.WindowTitle">关于 PayBeat</sys:String>
+    <sys:String x:Key="About.WindowTitle">关于今日薪动</sys:String>
     <sys:String x:Key="About.Description">一款轻量悬浮组件，实时显示你的当日薪资进度。</sys:String>
     <sys:String x:Key="About.Author">作者</sys:String>
     <sys:String x:Key="About.License">许可证</sys:String>
     <sys:String x:Key="About.GitHub">GitHub</sys:String>
     <sys:String x:Key="About.Close">关闭</sys:String>
-    <sys:String x:Key="About.BasedOn">Based on PayBeat by coldhighsun (MIT)</sys:String>
+    <sys:String x:Key="About.BasedOn">基于开源项目 PayBeat 二次开发</sys:String>
     <sys:String x:Key="About.Version">版本</sys:String>
 
     <!-- First run -->
-    <sys:String x:Key="FirstRun.Title">欢迎使用 PayBeat</sys:String>
+    <sys:String x:Key="FirstRun.Title">欢迎使用今日薪动</sys:String>
     <sys:String x:Key="FirstRun.Subtitle">简单几步配置，看看今天已经赚了多少</sys:String>
     <sys:String x:Key="FirstRun.Start">开始使用</sys:String>
     <sys:String x:Key="FirstRun.Lunch">午休（不计时）</sys:String>
@@ -194,7 +196,7 @@
     <sys:String x:Key="Error.SalaryPositive">工资须大于 0</sys:String>
     <sys:String x:Key="Error.SalaryTooLarge">金额不能超过 99,999,999</sys:String>
     <sys:String x:Key="Error.WorkEndAfterStart">下班时间须晚于上班时间（暂不支持跨日班次）</sys:String>
-    <sys:String x:Key="Error.AlreadyRunning">PayBeat 已在运行中。</sys:String>
+    <sys:String x:Key="Error.AlreadyRunning">今日薪动已在运行中。</sys:String>
     <sys:String x:Key="Error.HotkeyConflict">快捷键 {0} 注册失败，可能已被其他程序占用。</sys:String>
     <sys:String x:Key="Error.LunchBreakInvalid">午休时间必须在工作时间内，且结束时间须晚于开始时间</sys:String>
     <sys:String x:Key="Error.MilestoneAmountPositive">里程碑金额须大于 0</sys:String>
@@ -211,6 +213,6 @@
     <sys:String x:Key="Notification.EndOfDayTitle">快下班了</sys:String>
     <sys:String x:Key="Notification.EndOfDayBody">还有 {0} 分钟下班。</sys:String>
     <sys:String x:Key="Notification.UpdateAvailableTitle">发现新版本</sys:String>
-    <sys:String x:Key="Notification.UpdateAvailableBody">PayBeat v{0} 已发布，打开“关于”窗口下载。</sys:String>
+    <sys:String x:Key="Notification.UpdateAvailableBody">今日薪动 v{0} 已发布，打开“关于”窗口下载。</sys:String>
 
 </ResourceDictionary>

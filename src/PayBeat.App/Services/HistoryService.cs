@@ -6,95 +6,79 @@ namespace PayBeat.App.Services;
 public sealed record DayHistoryRecord
 {
     public DateOnly Date { get; init; }
-
     public DayStatus Status { get; init; }
-
-    /// <summary>Standard daily rate snapshot as computed that day (Decimal).</summary>
     public decimal DailyRate { get; init; }
-
-    /// <summary>Day target snapshot (daily rate minus leave deduction; PTO pays in full).</summary>
     public decimal TargetEarned { get; init; }
-
-    /// <summary>Final earned snapshot for the day.</summary>
     public decimal FinalEarned { get; init; }
-
     public double LeaveSeconds { get; init; }
-
-    /// <summary>Salary configuration snapshot actually used for this day.</summary>
     public SalaryProfile? SalaryProfileSnapshot { get; init; }
-
-    /// <summary>Schedule snapshot actually used for this day.</summary>
     public WorkScheduleProfile? ScheduleSnapshot { get; init; }
-
-    /// <summary>Week policy snapshot actually used for this day.</summary>
     public WorkWeekPolicy? WeekPolicySnapshot { get; init; }
-
-    /// <summary>Planned paid workdays of the month as of this day's computation (denominator snapshot).</summary>
     public int PlannedWorkdaysSnapshot { get; init; }
 }
 
-/// <summary>One month's history file content at <c>history/YYYY-MM.json</c>.</summary>
+/// <summary>One month's history file content.</summary>
 public sealed record MonthHistory
 {
     public string Month { get; init; } = "";
-
-    /// <summary>True once the month has rolled over and the file is treated as immutable.</summary>
     public bool Finalized { get; init; }
-
-    /// <summary>Month-level aggregates captured at finalization.</summary>
     public decimal StandardMonthlySnapshot { get; init; }
-
     public decimal MonthTargetSnapshot { get; init; }
-
     public decimal MonthEarnedSnapshot { get; init; }
-
     public int PlannedWorkdays { get; init; }
-
     public int PtoDays { get; init; }
-
     public decimal LeaveHours { get; init; }
-
     public string WorkWeekTypeSnapshot { get; init; } = "";
-
     public Dictionary<string, DayHistoryRecord> Days { get; init; } = [];
 }
 
 /// <summary>
-/// Persists per-day and per-month history snapshots under <c>%APPDATA%\PayBeat\history\</c>.
-/// Snapshots freeze the configuration and results that were in effect on each day so later
-/// settings edits can never rewrite the past (the "history is immutable" rule). Reads are
-/// best-effort: a missing or corrupt file simply means "no data for that month".
+/// Persists per-day and per-month history snapshots. Supports injectable paths for testing.
+/// Uses atomic writes and logs failures instead of silently swallowing them.
 /// </summary>
 public class HistoryService
 {
+    private readonly string _historyDirectory;
+
     private static readonly JsonSerializerOptions Options = new()
     {
         WriteIndented = true,
         PropertyNameCaseInsensitive = true,
     };
 
-    private static string FilePathFor(DateOnly month) => Path.Combine(
-        SettingsService.SettingsDirectory, "history", $"{month.Year:D4}-{month.Month:D2}.json");
+    /// <summary>Creates a HistoryService using the default AppData path.</summary>
+    public HistoryService() : this(Path.Combine(
+        Path.GetDirectoryName(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "PayBeat", "settings.json"))!,
+        "history")) { }
 
-    /// <summary>Loads a month history, or <see langword="null"/> when absent/corrupt.</summary>
+    /// <summary>Creates a HistoryService with an explicit directory path (for testing).</summary>
+    public HistoryService(string historyDirectory)
+    {
+        _historyDirectory = historyDirectory;
+    }
+
+    private string FilePathFor(DateOnly month) => Path.Combine(
+        _historyDirectory, $"{month.Year:D4}-{month.Month:D2}.json");
+
+    /// <summary>Loads a month history, or null when absent/corrupt.</summary>
     public MonthHistory? Load(DateOnly month)
     {
         try
         {
             var path = FilePathFor(month);
-            if (!File.Exists(path))
-            {
-                return null;
-            }
+            if (!File.Exists(path)) return null;
             return JsonSerializer.Deserialize<MonthHistory>(File.ReadAllText(path), Options);
         }
-        catch
+        catch (Exception ex)
         {
+            AppLogger.LogError($"HistoryService.Load({month})", ex);
             return null;
         }
     }
 
-    /// <summary>Merges a day record into the month file (creating it when needed) and saves.</summary>
+    /// <summary>Merges a day record into the month file atomically.</summary>
     public void RecordDay(DateOnly month, DayHistoryRecord record)
     {
         try
@@ -109,9 +93,9 @@ public class HistoryService
             };
             Save(history with { Days = days });
         }
-        catch
+        catch (Exception ex)
         {
-            // History persistence must never crash the live widget.
+            AppLogger.LogError($"HistoryService.RecordDay({month}, {record.Date})", ex);
         }
     }
 
@@ -122,18 +106,44 @@ public class HistoryService
         {
             Save(finalized with { Finalized = true, Month = $"{month.Year:D4}-{month.Month:D2}" });
         }
-        catch
+        catch (Exception ex)
         {
-            // Best-effort.
+            AppLogger.LogError($"HistoryService.FinalizeMonth({month})", ex);
         }
     }
 
-    /// <summary>Replaces the whole month file (used when the user explicitly edits history).</summary>
+    /// <summary>Atomically replaces the whole month file.</summary>
     public void Save(MonthHistory history)
     {
         var path = FilePathFor(DateOnly.Parse(history.Month + "-01"));
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, JsonSerializer.Serialize(history, Options));
+
+        var json = JsonSerializer.Serialize(history, Options);
+        var tempPath = path + ".tmp";
+
+        try
+        {
+            File.WriteAllText(tempPath, json);
+            using (var fs = new FileStream(tempPath, FileMode.Open, FileAccess.Read, FileShare.None))
+            {
+                fs.Flush(true);
+            }
+
+            if (File.Exists(path))
+            {
+                File.Replace(tempPath, path, null);
+            }
+            else
+            {
+                File.Move(tempPath, path);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"HistoryService.Save({history.Month})", ex);
+            try { if (File.Exists(tempPath)) File.Delete(tempPath); } catch { }
+            throw;
+        }
     }
 
     /// <summary>Lists months that have history files, newest first.</summary>
@@ -141,20 +151,17 @@ public class HistoryService
     {
         try
         {
-            var dir = Path.Combine(SettingsService.SettingsDirectory, "history");
-            if (!Directory.Exists(dir))
-            {
-                return [];
-            }
-            return Directory.GetFiles(dir, "*.json")
+            if (!Directory.Exists(_historyDirectory)) return [];
+            return Directory.GetFiles(_historyDirectory, "*.json")
                 .Select(Path.GetFileName)
                 .Select(name => DateOnly.TryParseExact(Path.GetFileNameWithoutExtension(name), "yyyy-MM", out var m) ? m : default)
                 .Where(m => m != default)
                 .OrderByDescending(m => m)
                 .ToList();
         }
-        catch
+        catch (Exception ex)
         {
+            AppLogger.LogError("HistoryService.ListMonths", ex);
             return [];
         }
     }

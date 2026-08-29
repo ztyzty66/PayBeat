@@ -32,7 +32,7 @@ public partial class SettingsWindow
         {
             if (DataContext is SettingsViewModel vm)
             {
-                CalendarPage.DataContext = new CalendarViewModel(vm.Service, vm.Main);
+                CalendarPage.DataContext = new CalendarViewModel(vm.Store, vm.Main, vm.Draft);
             }
         };
     }

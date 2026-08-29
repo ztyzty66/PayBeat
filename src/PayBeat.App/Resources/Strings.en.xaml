@@ -69,7 +69,7 @@
     <sys:String x:Key="Settings.Week.Double">2-day rest</sys:String>
     <sys:String x:Key="Settings.Week.Single">1-day rest</sys:String>
     <sys:String x:Key="Settings.Week.Custom">Custom</sys:String>
-    <sys:String x:Key="Settings.RestDays">Rest days</sys:String>
+    <sys:String x:Key="Settings.RestDays">Weekly workdays</sys:String>
     <sys:String x:Key="Settings.Section.Schedule">Schedule</sys:String>
     <sys:String x:Key="Settings.CurrentSchedule">Current schedule</sys:String>
     <sys:String x:Key="Settings.ManageSchedules">Manage schedules</sys:String>

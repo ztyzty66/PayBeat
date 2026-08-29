@@ -69,7 +69,7 @@
     <sys:String x:Key="Settings.Week.Double">双休</sys:String>
     <sys:String x:Key="Settings.Week.Single">单休</sys:String>
     <sys:String x:Key="Settings.Week.Custom">自定义</sys:String>
-    <sys:String x:Key="Settings.RestDays">固定休息日</sys:String>
+    <sys:String x:Key="Settings.RestDays">每周工作日</sys:String>
     <sys:String x:Key="Settings.Section.Schedule">作息方案</sys:String>
     <sys:String x:Key="Settings.CurrentSchedule">当前方案</sys:String>
     <sys:String x:Key="Settings.ManageSchedules">管理方案</sys:String>

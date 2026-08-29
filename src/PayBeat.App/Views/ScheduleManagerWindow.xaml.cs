@@ -142,7 +142,18 @@ public partial class ScheduleManagerWindow
 
         if (_isNewEntry || _selected is null)
         {
-            var entry = new WorkScheduleProfile { Name = name, WorkStart = start, WorkEnd = end, LunchBreakEnabled = lunchOn, LunchBreakStart = lunchStart, LunchBreakEnd = lunchEnd, EffectiveFrom = effectiveFrom };
+            var entry = new WorkScheduleProfile
+            {
+                // Keep the pending card's id so the saved row stays trackable (badge → pending).
+                Id = _selected?.Id ?? Guid.NewGuid().ToString("N"),
+                Name = name,
+                WorkStart = start,
+                WorkEnd = end,
+                LunchBreakEnabled = lunchOn,
+                LunchBreakStart = lunchStart,
+                LunchBreakEnd = lunchEnd,
+                EffectiveFrom = effectiveFrom,
+            };
             // Same-day upsert: a new submission replaces the existing version of that date.
             schedules = ProfileVersioning.Upsert(schedules, entry, s => s.EffectiveFrom, (a, b) => a.Id == b.Id);
         }
@@ -189,7 +200,7 @@ public partial class ScheduleManagerWindow
             _pendingNew = null;
         }
 
-        _selected = schedules.First(s => s.Id == savedId);
+        _selected = schedules.FirstOrDefault(s => s.Id == savedId) ?? schedules.OrderByDescending(s => s.EffectiveFrom).First();
         _isNewEntry = false;
         Reload();
     }
@@ -200,7 +211,9 @@ public partial class ScheduleManagerWindow
         var today = DateOnly.FromDateTime(DateTime.Now);
         var selected = _settings.ScheduleProfiles.FirstOrDefault(s => s.Id == _selected.Id);
         if (selected is null) return;
-        var activated = selected.EffectiveFrom < today ? selected with { EffectiveFrom = today } : selected;
+        // "设为当前" means "use it from today" — for past-effective AND future-effective
+        // schedules alike (e.g. a winter schedule dated 2026-10-01 activated in August).
+        var activated = selected.EffectiveFrom == today ? selected : selected with { EffectiveFrom = today };
         // "设为当前" owns today's version: other same-date entries are superseded by upsert;
         // historical (< today) entries are never touched.
         var others = _settings.ScheduleProfiles.Where(s => s.Id != selected.Id).ToList();

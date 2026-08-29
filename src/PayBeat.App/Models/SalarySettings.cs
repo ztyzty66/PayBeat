@@ -34,9 +34,11 @@ public record SalarySettings
     public DisplayMode DisplayMode { get; init; } = DisplayMode.Normal;
 
     /// <summary>
-    /// Whether the widget window is pinned above all other windows.
+    /// Whether the widget window is pinned above all other windows. Applies to the main
+    /// floating widget only — function windows (Settings/Schedule/DayEditor/Detail/About)
+    /// are never globally topmost. Default off: the widget participates in normal Z-order.
     /// </summary>
-    public bool AlwaysOnTop { get; init; } = true;
+    public bool AlwaysOnTop { get; init; } = false;
 
     /// <summary>
     /// Timer tick interval in seconds for refreshing the earnings display.

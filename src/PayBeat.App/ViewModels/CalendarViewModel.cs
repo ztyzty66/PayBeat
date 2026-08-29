@@ -42,6 +42,10 @@ public class CalendarViewModel : ViewModelBase
         _store = store;
         _mainVm = mainVm;
         _draft = draft;
+        // Live preview: re-render the grid whenever the shared draft changes (salary page week
+        // edits, schedule manager activation, day-editor overrides). Draft and this view model
+        // share the settings window's lifetime, so no unsubscribe is needed.
+        draft.Changed += Rebuild;
         var today = DateOnly.FromDateTime(DateTime.Now);
         _displayMonth = new DateOnly(today.Year, today.Month, 1);
         Rebuild();
@@ -59,6 +63,9 @@ public class CalendarViewModel : ViewModelBase
     public IReadOnlyList<CalendarDayVm> Days { get => _days; private set => SetField(ref _days, value); }
     public string MonthTitle { get => _monthTitle; private set => SetField(ref _monthTitle, value); }
     public IReadOnlyList<CalendarDayVm> Grid => Days;
+
+    /// <summary>Re-renders the month grid from the current store/draft state.</summary>
+    public void Refresh() => Rebuild();
 
     public void PreviousMonth() { _displayMonth = _displayMonth.AddMonths(-1); Rebuild(); }
     public void NextMonth() { _displayMonth = _displayMonth.AddMonths(1); Rebuild(); }

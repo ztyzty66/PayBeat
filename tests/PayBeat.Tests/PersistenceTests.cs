@@ -178,6 +178,13 @@ public class PersistenceTests : IDisposable
     }
 
     [Fact]
+    public void Settings_AlwaysOnTop_DefaultsOff_FunctionWindowsNeverTopmost()
+    {
+        // P2 rule: only the main floating widget may be always-on-top, and its default is off.
+        Assert.False(new SalarySettings().AlwaysOnTop);
+    }
+
+    [Fact]
     public void History_AtomicWrite()
     {
         var historyDir = Path.Combine(_tempDir, "history");

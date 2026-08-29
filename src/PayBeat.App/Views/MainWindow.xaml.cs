@@ -258,17 +258,9 @@ public partial class MainWindow
             return;
         }
 
-        // Don't fight Settings/About for the topmost band - they are shown as owned, topmost
-        // windows themselves (see MainViewModel.ApplyTopmostIfNeeded) and would otherwise get
-        // buried again the moment they take focus and trigger this foreground-change callback.
-        foreach (Window w in Application.Current.Windows)
-        {
-            if (w is SettingsWindow or AboutWindow)
-            {
-                return;
-            }
-        }
-
+        // Function windows (Settings/About/Detail) live in the normal Z-order band (they are
+        // never globally topmost — see MainViewModel.ApplyTopmostIfNeeded), so re-asserting the
+        // widget's topmost placement never buries them.
         TopmostHelper.ForceTopmost(this);
     }
 

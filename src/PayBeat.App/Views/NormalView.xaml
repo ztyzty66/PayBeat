@@ -46,9 +46,9 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Amount row (work days) -->
+            <!-- Amount row (work days only) -->
             <StackPanel Orientation="Horizontal" Margin="0,4,0,2"
-                        Visibility="{Binding IsRestDay, Converter={StaticResource BoolToCollapsedConverter}, FallbackValue=Collapsed}">
+                        Visibility="{Binding IsRestDay, Converter={StaticResource InvertedBoolToCollapsedConverter}, FallbackValue=Collapsed}">
                 <TextBlock Text="{Binding EarnedFormatted, Mode=OneWay}"
                            Foreground="{DynamicResource TextBrush}"
                            FontFamily="Segoe UI" FontSize="38" FontWeight="Bold"/>
@@ -60,7 +60,7 @@
 
             <!-- Rest day message -->
             <StackPanel Margin="0,4,0,2"
-                        Visibility="{Binding IsRestDay, Converter={StaticResource InvertedBoolToCollapsedConverter}, FallbackValue=Collapsed}">
+                        Visibility="{Binding IsRestDay, Converter={StaticResource BoolToCollapsedConverter}, FallbackValue=Collapsed}">
                 <TextBlock Text="😴 今天休息"
                            Foreground="{DynamicResource TextBrush}"
                            FontFamily="Segoe UI" FontSize="22" FontWeight="SemiBold"/>

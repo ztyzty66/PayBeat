@@ -215,12 +215,17 @@ public class MainViewModel : ViewModelBase, IDisposable
         win.Show();
     }
 
-    private static void ApplyTopmostIfNeeded(Window win)
+    // Function windows (Settings/About/Detail) must never be globally topmost: only the main
+    // floating widget honors AlwaysOnTop. Win32 places owned windows of a TOPMOST owner in the
+    // topmost band, so ownership is only applied while the widget itself is not topmost —
+    // otherwise the function window would inherit the topmost band. When owned, the group
+    // still drops behind other applications normally; when not owned (widget topmost), the
+    // function window is fully independent in the normal Z-order.
+    internal static void ApplyTopmostIfNeeded(Window win)
     {
-        if (Application.Current.MainWindow is { Topmost: true } mainWindow)
+        if (Application.Current.MainWindow is { Topmost: false } mainWindow && !ReferenceEquals(win, mainWindow))
         {
             win.Owner = mainWindow;
-            win.Topmost = true;
         }
     }
 

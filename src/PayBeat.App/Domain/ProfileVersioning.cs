@@ -52,25 +52,24 @@ public static class ProfileVersioning
     }
 
     /// <summary>
-    /// Ensures no two profiles share the same EffectiveFrom date by keeping only the latest
-    /// entry for each date. Does NOT modify profiles with EffectiveFrom before today.
+    /// Ensures no two profiles share the same EffectiveFrom date. Deterministic last-write-wins:
+    /// when several entries carry the same date, the one submitted LATEST (highest list index)
+    /// survives — a new same-day submission replaces the existing version for that day.
     /// </summary>
     public static List<T> DeduplicateByDate<T>(List<T> profiles, Func<T, DateOnly> getEffectiveFrom)
     {
         var result = new List<T>();
         var seenDates = new HashSet<DateOnly>();
 
-        // Process from most recent to oldest so we keep the first (latest) entry per date
-        foreach (var p in profiles.OrderByDescending(p => getEffectiveFrom(p)))
+        // Walk newest-submitted → oldest so each date keeps its LAST occurrence.
+        for (var i = profiles.Count - 1; i >= 0; i--)
         {
-            var date = getEffectiveFrom(p);
-            if (seenDates.Add(date))
+            if (seenDates.Add(getEffectiveFrom(profiles[i])))
             {
-                result.Add(p);
+                result.Add(profiles[i]);
             }
         }
 
-        // Reverse to restore chronological order
         result.Reverse();
         return result;
     }

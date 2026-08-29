@@ -122,25 +122,41 @@ public partial class ScheduleManagerWindow
 
         if (_isNewEntry || _selected is null)
         {
-            schedules.Add(new WorkScheduleProfile { Name = name, WorkStart = start, WorkEnd = end, LunchBreakEnabled = lunchOn, LunchBreakStart = lunchStart, LunchBreakEnd = lunchEnd, EffectiveFrom = effectiveFrom });
+            var entry = new WorkScheduleProfile { Name = name, WorkStart = start, WorkEnd = end, LunchBreakEnabled = lunchOn, LunchBreakStart = lunchStart, LunchBreakEnd = lunchEnd, EffectiveFrom = effectiveFrom };
+            // Same-day upsert: a new submission replaces the existing version of that date.
+            schedules = ProfileVersioning.Upsert(schedules, entry, s => s.EffectiveFrom, (a, b) => a.Id == b.Id);
         }
         else
         {
             var index = schedules.FindIndex(s => s.Id == _selected.Id);
             if (index < 0) return;
             var edited = schedules[index];
+            var updated = new WorkScheduleProfile
+            {
+                Id = edited.EffectiveFrom < today ? Guid.NewGuid().ToString("N") : edited.Id,
+                Name = name,
+                WorkStart = start,
+                WorkEnd = end,
+                LunchBreakEnabled = lunchOn,
+                LunchBreakStart = lunchStart,
+                LunchBreakEnd = lunchEnd,
+                EffectiveFrom = effectiveFrom,
+            };
             if (edited.EffectiveFrom < today)
             {
-                schedules.Add(new WorkScheduleProfile { Name = name, WorkStart = start, WorkEnd = end, LunchBreakEnabled = lunchOn, LunchBreakStart = lunchStart, LunchBreakEnd = lunchEnd, EffectiveFrom = effectiveFrom });
+                // Never rewrite history: create a new version effective from the requested date.
+                schedules = ProfileVersioning.Upsert(schedules, updated, s => s.EffectiveFrom, (a, b) => a.Id == b.Id);
             }
             else
             {
-                schedules[index] = edited with { Name = name, WorkStart = start, WorkEnd = end, LunchBreakEnabled = lunchOn, LunchBreakStart = lunchStart, LunchBreakEnd = lunchEnd, EffectiveFrom = effectiveFrom };
+                schedules = ProfileVersioning.Upsert(schedules, updated, s => s.EffectiveFrom, (a, b) => a.Id == b.Id);
             }
         }
 
         schedules = ProfileVersioning.DeduplicateByDate(schedules, s => s.EffectiveFrom);
         _draft.ScheduleProfiles = schedules;
+        _selected = schedules.OrderByDescending(s => s.EffectiveFrom).FirstOrDefault(s => s.Name == name);
+        _isNewEntry = false;
         Reload();
     }
 
@@ -148,11 +164,17 @@ public partial class ScheduleManagerWindow
     {
         if (_selected is null) return;
         var today = DateOnly.FromDateTime(DateTime.Now);
-        var schedules = _settings.ScheduleProfiles
-            .Select(s => s.EffectiveFrom < today && s.Id == _selected.Id ? s with { EffectiveFrom = today } : s)
-            .ToList();
+        var selected = _settings.ScheduleProfiles.FirstOrDefault(s => s.Id == _selected.Id);
+        if (selected is null) return;
+        var activated = selected.EffectiveFrom < today ? selected with { EffectiveFrom = today } : selected;
+        // "设为当前" owns today's version: other same-date entries are superseded by upsert;
+        // historical (< today) entries are never touched.
+        var others = _settings.ScheduleProfiles.Where(s => s.Id != selected.Id).ToList();
+        var schedules = ProfileVersioning.Upsert(others, activated, s => s.EffectiveFrom, (a, b) => a.Id == b.Id);
         schedules = ProfileVersioning.DeduplicateByDate(schedules, s => s.EffectiveFrom);
         _draft.ScheduleProfiles = schedules;
+        _selected = activated;
+        _isNewEntry = false;
         Reload();
     }
 

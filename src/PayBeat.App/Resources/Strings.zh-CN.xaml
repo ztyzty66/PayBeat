@@ -45,6 +45,7 @@
     <sys:String x:Key="Status.Leave">今日请假</sys:String>
     <sys:String x:Key="Status.BeforeWork">未上班</sys:String>
     <sys:String x:Key="Status.UntilStart">距上班 {0} 分钟</sys:String>
+    <sys:String x:Key="Status.RestDayMessage">本日不计薪</sys:String>
 
     <!-- Settings window -->
     <sys:String x:Key="Settings.WindowTitle">今日薪动 设置</sys:String>
@@ -156,6 +157,8 @@
     <sys:String x:Key="Settings.LanguageAuto">自动</sys:String>
     <sys:String x:Key="Settings.Hotkey">显示/隐藏快捷键</sys:String>
     <sys:String x:Key="Settings.HotkeyHint">点击后输入快捷键组合</sys:String>
+    <sys:String x:Key="Settings.Hotkey.Ok">✓ 快捷键可用</sys:String>
+    <sys:String x:Key="Settings.Hotkey.Conflict">⚠ {0} 已被其他程序占用，当前未生效</sys:String>
     <sys:String x:Key="Settings.HotkeyCapturing">请输入快捷键组合...</sys:String>
     <sys:String x:Key="Settings.Section.About">关于</sys:String>
     <sys:String x:Key="Settings.BasedOn">基于开源项目 PayBeat 二次开发 · 原项目作者 coldhighsun · MIT License</sys:String>

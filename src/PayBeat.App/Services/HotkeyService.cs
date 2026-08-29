@@ -21,6 +21,17 @@ public sealed class HotkeyService : IDisposable
     public event Action? Triggered;
 
     /// <summary>
+    /// Result of the most recent Register/Update call: true = registered, false = the combination
+    /// is occupied by another program, null = never attempted. Read by the settings window to
+    /// surface conflict state without blocking dialogs.
+    /// </summary>
+    public static bool? LastRegistrationSucceeded
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
     /// Returns a human-readable string for a modifier + virtual-key combination (e.g. <c>Ctrl+Alt+X</c>).
     /// </summary>
     /// <param name="modifiers">Win32 modifier flags (MOD_ALT=0x01, MOD_CONTROL=0x02, MOD_SHIFT=0x04, MOD_WIN=0x08).</param>
@@ -73,7 +84,8 @@ public sealed class HotkeyService : IDisposable
         _hwnd = helper.Handle;
         _source = HwndSource.FromHwnd(_hwnd);
         _source?.AddHook(WndProc);
-        return RegisterHotKey(_hwnd, Id, (uint)modifiers, (uint)virtualKey);
+        LastRegistrationSucceeded = RegisterHotKey(_hwnd, Id, (uint)modifiers, (uint)virtualKey);
+        return LastRegistrationSucceeded.Value;
     }
 
     /// <summary>Resumes firing <see cref="Triggered"/> after a prior <see cref="Suspend"/> call.</summary>
@@ -94,7 +106,8 @@ public sealed class HotkeyService : IDisposable
             return false;
         }
         UnregisterHotKey(_hwnd, Id);
-        return RegisterHotKey(_hwnd, Id, (uint)modifiers, (uint)virtualKey);
+        LastRegistrationSucceeded = RegisterHotKey(_hwnd, Id, (uint)modifiers, (uint)virtualKey);
+        return LastRegistrationSucceeded.Value;
     }
 
     [DllImport("user32.dll")]

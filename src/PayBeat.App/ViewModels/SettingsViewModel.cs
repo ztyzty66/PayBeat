@@ -47,6 +47,8 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     private WorkWeekType _weekType;
     private string _scheduleName;
     private readonly HashSet<DayOfWeek> _workDays = [];
+    private string _hotkeyStatus = "";
+    private bool _originalRunAtStartup;
 
     public SettingsViewModel(ConfigurationStore store, MainViewModel mainVm)
     {
@@ -80,6 +82,7 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         _hotkeyModifiers = _draft.HotkeyModifiers;
         _hotkeyVirtualKey = _draft.HotkeyVirtualKey;
         _runAtStartup = StartupService.IsEnabled();
+        _originalRunAtStartup = _runAtStartup;
         _enableEndOfDayReminder = _draft.EnableEndOfDayReminder;
         _endOfDayReminderMinutesText = _draft.EndOfDayReminderMinutes.ToString();
         _enableMilestoneNotifications = _draft.EnableMilestoneNotifications;
@@ -88,6 +91,7 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         SaveCommand = new RelayCommand(Save, CanSave);
         CancelCommand = new RelayCommand(CloseWindow);
         ManageSchedulesCommand = new RelayCommand(OpenScheduleManager);
+        RefreshHotkeyStatus();
     }
 
     public ConfigurationDraft Draft => _draft;
@@ -103,7 +107,7 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     public bool IsMonthlyMode { get => _salaryMode == SalaryMode.Monthly; set { if (value) SalaryMode = SalaryMode.Monthly; } }
     public bool IsDailyMode { get => _salaryMode == SalaryMode.Daily; set { if (value) SalaryMode = SalaryMode.Daily; } }
 
-    public WorkWeekType WeekType { get => _weekType; set { if (SetField(ref _weekType, value)) ApplyWeekPreset(value); } }
+    public WorkWeekType WeekType { get => _weekType; set { if (SetField(ref _weekType, value)) { ApplyWeekPreset(value); ApplyWeekToDraft(); } } }
     public bool IsDoubleRest { get => _weekType == WorkWeekType.DoubleRest; set { if (value) WeekType = WorkWeekType.DoubleRest; } }
     public bool IsSingleRest { get => _weekType == WorkWeekType.SingleRest; set { if (value) WeekType = WorkWeekType.SingleRest; } }
     public bool IsCustomWeek { get => _weekType == WorkWeekType.Custom; set { if (value) WeekType = WorkWeekType.Custom; } }
@@ -125,6 +129,27 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     string IDataErrorInfo.Error => string.Empty;
     public string ErrorMessage { get; private set => SetField(ref field, value); } = string.Empty;
     public string HotkeyDisplayText => HotkeyService.Format(HotkeyModifiers, HotkeyVirtualKey);
+
+    /// <summary>
+    /// Current hotkey registration state for display: empty (never registered),
+    /// "✓ 快捷键可用" (registered), or a ⚠ warning naming the occupied combination.
+    /// </summary>
+    public string HotkeyStatus
+    {
+        get => _hotkeyStatus;
+        private set => SetField(ref _hotkeyStatus, value);
+    }
+
+    /// <summary>Re-evaluates <see cref="HotkeyStatus"/> from the latest registration result.</summary>
+    public void RefreshHotkeyStatus()
+    {
+        HotkeyStatus = HotkeyService.LastRegistrationSucceeded switch
+        {
+            true => LocalizationService.Get("Settings.Hotkey.Ok"),
+            false => string.Format(LocalizationService.Get("Settings.Hotkey.Conflict"), HotkeyDisplayText),
+            _ => string.Empty,
+        };
+    }
     public int HotkeyModifiers { get => _hotkeyModifiers; set { if (SetField(ref _hotkeyModifiers, value)) OnPropertyChanged(nameof(HotkeyDisplayText)); } }
     public int HotkeyVirtualKey { get => _hotkeyVirtualKey; set { if (SetField(ref _hotkeyVirtualKey, value)) OnPropertyChanged(nameof(HotkeyDisplayText)); } }
     public bool IsFlexMode { get => _displayMode == DisplayMode.Flex; set { if (value) DisplayMode = DisplayMode.Flex; } }
@@ -156,6 +181,12 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
 
     private void CloseWindow()
     {
+        // Application.Current is null in unit tests — cancelling there must be a no-op, not a crash.
+        if (Application.Current is null)
+        {
+            return;
+        }
+
         foreach (Window w in Application.Current.Windows)
         {
             if (w is SettingsWindow) { w.Close(); break; }
@@ -179,11 +210,18 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         _lunchBreakEnabled = schedule.LunchBreakEnabled;
         _lunchBreakStart = schedule.LunchBreakStart;
         _lunchBreakEnd = schedule.LunchBreakEnd;
+        // Keep the name field in sync too: after activating another schedule in the manager,
+        // the salary page must show (and re-save) that schedule's name — not the stale one.
+        _scheduleName = string.IsNullOrWhiteSpace(schedule.Name)
+            ? LocalizationService.Get("Salary.DefaultScheduleName")
+            : schedule.Name;
         OnPropertyChanged(nameof(WorkStart));
         OnPropertyChanged(nameof(WorkEnd));
         OnPropertyChanged(nameof(LunchBreakEnabled));
         OnPropertyChanged(nameof(LunchBreakStart));
         OnPropertyChanged(nameof(LunchBreakEnd));
+        OnPropertyChanged(nameof(ScheduleName));
+        _draft.RaiseChanged();
         Revalidate();
     }
 
@@ -203,7 +241,20 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     private void SetWorkDay(DayOfWeek day, bool isWorkDay)
     {
         if (isWorkDay) _workDays.Add(day); else _workDays.Remove(day);
+        ApplyWeekToDraft();
         OnPropertyChanged(day switch { DayOfWeek.Monday => nameof(WorkMonday), DayOfWeek.Tuesday => nameof(WorkTuesday), DayOfWeek.Wednesday => nameof(WorkWednesday), DayOfWeek.Thursday => nameof(WorkThursday), DayOfWeek.Friday => nameof(WorkFriday), DayOfWeek.Saturday => nameof(WorkSaturday), _ => nameof(WorkSunday) });
+    }
+
+    /// <summary>
+    /// Writes the current week edit state into the shared draft as an effective-today policy
+    /// (upsert, same-day replace) so live previews (calendar page) see unsaved edits.
+    /// </summary>
+    private void ApplyWeekToDraft()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var policy = new WorkWeekPolicy { Type = _weekType, WorkDays = new HashSet<DayOfWeek>(_workDays), EffectiveFrom = today };
+        _draft.WeekPolicies = ProfileVersioning.Upsert(_draft.WeekPolicies, policy, p => p.EffectiveFrom, (a, b) => a.Type == b.Type && a.WorkDays.SetEquals(b.WorkDays));
+        _draft.RaiseChanged();
     }
 
     private void Revalidate()
@@ -257,9 +308,16 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         };
 
         _store.Commit(settings);
-        StartupService.SetEnabled(_runAtStartup);
+        if (_runAtStartup != _originalRunAtStartup)
+        {
+            // Only touch the registry when the user actually toggled the checkbox — avoids
+            // rewriting (and in tests, clobbering) the Run entry on every save.
+            StartupService.SetEnabled(_runAtStartup);
+            _originalRunAtStartup = _runAtStartup;
+        }
         LocalizationService.Apply(Language);
         ThemeService.Apply(Theme);
+        RefreshHotkeyStatus();
         CloseWindow();
     }
 

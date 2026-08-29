@@ -45,6 +45,7 @@
     <sys:String x:Key="Status.Leave">On leave</sys:String>
     <sys:String x:Key="Status.BeforeWork">Before work</sys:String>
     <sys:String x:Key="Status.UntilStart">Starts in {0} min</sys:String>
+    <sys:String x:Key="Status.RestDayMessage">No pay for this day</sys:String>
 
     <!-- Settings window -->
     <sys:String x:Key="Settings.WindowTitle">今日薪动 设置</sys:String>
@@ -156,6 +157,8 @@
     <sys:String x:Key="Settings.LanguageAuto">Auto</sys:String>
     <sys:String x:Key="Settings.Hotkey">Show/hide hotkey</sys:String>
     <sys:String x:Key="Settings.HotkeyHint">Click, then press a key combination</sys:String>
+    <sys:String x:Key="Settings.Hotkey.Ok">✓ Hotkey available</sys:String>
+    <sys:String x:Key="Settings.Hotkey.Conflict">⚠ {0} is occupied by another program — not active</sys:String>
     <sys:String x:Key="Settings.HotkeyCapturing">Press a key combination...</sys:String>
     <sys:String x:Key="Settings.Section.About">About</sys:String>
     <sys:String x:Key="Settings.BasedOn">基于开源项目 PayBeat 二次开发 · original project by coldhighsun · MIT License</sys:String>

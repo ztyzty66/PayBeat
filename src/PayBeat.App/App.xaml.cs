@@ -52,6 +52,16 @@ public partial class App
         base.OnStartup(e);
 
         AppLogger.Initialize();
+
+        // Last-resort logging so a crash is never silent (no dialogs — tray app must not block).
+        DispatcherUnhandledException += (_, e) =>
+        {
+            AppLogger.LogError("DispatcherUnhandledException", e.Exception);
+            e.Handled = true;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            AppLogger.LogError("AppDomain.UnhandledException", e.ExceptionObject as Exception ?? new Exception(e.ExceptionObject.ToString()));
+
         var settings = LoadStartupSettings();
 
         if (!TryAcquireSingleInstance())
@@ -75,10 +85,8 @@ public partial class App
 
         if (!settings.SetupCompleted)
         {
-            var firstRun = new FirstRunWindow(_store!)
-            {
-                Owner = _mainWindow,
-            };
+            var firstRun = new FirstRunWindow(_store!);
+            ViewModels.MainViewModel.ApplyTopmostIfNeeded(firstRun);
             firstRun.Show();
         }
     }

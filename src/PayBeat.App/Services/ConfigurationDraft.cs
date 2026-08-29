@@ -18,6 +18,16 @@ public class ConfigurationDraft
         _base = baseSettings;
     }
 
+    /// <summary>
+    /// Raised when a draft section changes in a way that live previews (calendar page) must
+    /// re-render. Subscribers share the draft's lifetime (both are owned by the settings
+    /// window), so no explicit unsubscribe is required.
+    /// </summary>
+    public event Action? Changed;
+
+    /// <summary>Raises <see cref="Changed"/> after a draft mutation.</summary>
+    public void RaiseChanged() => Changed?.Invoke();
+
     /// <summary>The underlying settings being edited.</summary>
     public SalarySettings Base => _base;
 

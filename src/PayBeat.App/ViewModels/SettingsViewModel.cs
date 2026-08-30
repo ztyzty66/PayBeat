@@ -336,8 +336,16 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     /// </summary>
     private void ApplyWeekToDraft()
     {
-        var policy = new WorkWeekPolicy { Type = _weekType, WorkDays = new HashSet<DayOfWeek>(_workDays), EffectiveFrom = ResolveEffectiveDate() };
-        _draft.WeekPolicies = ProfileVersioning.Upsert(_draft.WeekPolicies, policy, p => p.EffectiveFrom, (a, b) => a.Type == b.Type && a.WorkDays.SetEquals(b.WorkDays));
+        var effectiveDate = ResolveEffectiveDate();
+        var policy = new WorkWeekPolicy { Type = _weekType, WorkDays = new HashSet<DayOfWeek>(_workDays), EffectiveFrom = effectiveDate };
+        var policies = new List<WorkWeekPolicy>(_draft.WeekPolicies);
+        policies.RemoveAll(p => p.EffectiveFrom >= effectiveDate);
+        policies = ProfileVersioning.Upsert(policies, policy, p => p.EffectiveFrom, (a, b) => a.Type == b.Type && a.WorkDays.SetEquals(b.WorkDays));
+        if (policies.Count == 0)
+        {
+            policies.Add(policy with { EffectiveFrom = new DateOnly(2000, 1, 1) });
+        }
+        _draft.WeekPolicies = policies;
         _draft.RaiseChanged();
     }
 
@@ -361,9 +369,18 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         var profiles = new List<SalaryProfile>(existing.SalaryProfiles);
         var latestProfile = profiles.Count > 0 ? profiles.OrderByDescending(p => p.EffectiveFrom).First() : null;
         var desiredProfile = new SalaryProfile { Mode = _salaryMode, MonthlyAmount = _salaryMode == SalaryMode.Monthly ? amount : 0m, DailyAmount = _salaryMode == SalaryMode.Daily ? amount : 0m, EffectiveFrom = effectiveDate };
-        if (latestProfile is null) profiles.Add(desiredProfile with { EffectiveFrom = new DateOnly(2000, 1, 1) });
-        else if (latestProfile.EffectiveFrom == effectiveDate) profiles[profiles.IndexOf(latestProfile)] = desiredProfile;
-        else profiles.Add(desiredProfile); // new version from the chosen date (same-date saves upsert)
+        if (profiles.Count == 0)
+        {
+            profiles.Add(desiredProfile with { EffectiveFrom = new DateOnly(2000, 1, 1) });
+        }
+        else
+        {
+            // "从 X 日起生效" supersedes EVERY version dated X or later — otherwise an older
+            // save with a later effective date (e.g. 单休@08-29) would keep outranking the
+            // new rule (双休@08-01) when resolving "today". Versions before X stay intact.
+            profiles.RemoveAll(p => p.EffectiveFrom >= effectiveDate);
+            profiles = ProfileVersioning.Upsert(profiles, desiredProfile, p => p.EffectiveFrom, (a, b) => a.Mode == b.Mode && a.MonthlyAmount == b.MonthlyAmount && a.DailyAmount == b.DailyAmount);
+        }
 
         var schedules = new List<WorkScheduleProfile>(existing.ScheduleProfiles);
         var latestSchedule = schedules.Count > 0 ? schedules.OrderByDescending(s => s.EffectiveFrom).First() : null;
@@ -375,9 +392,15 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         var policies = new List<WorkWeekPolicy>(existing.WeekPolicies);
         var latestPolicy = policies.Count > 0 ? policies.OrderByDescending(p => p.EffectiveFrom).First() : null;
         var desiredPolicy = new WorkWeekPolicy { Type = _weekType, WorkDays = new HashSet<DayOfWeek>(_workDays), EffectiveFrom = effectiveDate };
-        if (latestPolicy is null) policies.Add(desiredPolicy with { EffectiveFrom = new DateOnly(2000, 1, 1) });
-        else if (latestPolicy.EffectiveFrom == effectiveDate) policies[policies.IndexOf(latestPolicy)] = desiredPolicy;
-        else policies.Add(desiredPolicy); // new version from the chosen date (same-date saves upsert)
+        if (policies.Count == 0)
+        {
+            policies.Add(desiredPolicy with { EffectiveFrom = new DateOnly(2000, 1, 1) });
+        }
+        else
+        {
+            policies.RemoveAll(p => p.EffectiveFrom >= effectiveDate);
+            policies = ProfileVersioning.Upsert(policies, desiredPolicy, p => p.EffectiveFrom, (a, b) => a.Type == b.Type && a.WorkDays.SetEquals(b.WorkDays));
+        }
 
         profiles = ProfileVersioning.DeduplicateByDate(profiles, p => p.EffectiveFrom);
         schedules = ProfileVersioning.DeduplicateByDate(schedules, s => s.EffectiveFrom);

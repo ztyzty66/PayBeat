@@ -335,4 +335,110 @@ public class EffectiveDateTests : IDisposable
         }
         throw new InvalidOperationException("No holiday-free Saturday within 40 days.");
     }
+
+// ── Regression: "本月1日起" must supersede later-dated versions (user bug 2026-08-30) ──
+
+/// <summary>
+/// User had saved 单休 effective 2026-08-29; on 08-30 they switched to 双休 with the default
+/// 本月1日起. The new 08-01 version must NOT be outranked by the later-dated 单休@08-29 when
+/// resolving today — the chosen date supersedes everything from that date on.
+/// </summary>
+[Fact]
+public void FirstOfMonthSave_SupersedesLaterDatedVersions()
+{
+    var store = CreateStore();
+    var main = new MainViewModel(store);
+    var today = Today;
+
+    // Seed the user's real history: 单休 saved yesterday (08-29), 双休 seed at 2000-01-01
+    var seeded = store.CurrentSettings with
+    {
+        WeekPolicies =
+        [
+            WorkWeekPolicy.Create(WorkWeekType.DoubleRest, new DateOnly(2000, 1, 1)),
+            WorkWeekPolicy.Create(WorkWeekType.SingleRest, today.AddDays(-1)),
+        ],
+    };
+    store.Commit(seeded);
+
+    Assert.Equal(WorkWeekType.SingleRest, WeekAt(store.CurrentSettings.WeekPolicies, today).Type);
+
+    // Switch to 双休 with the default 本月1日起
+    var vm = new SettingsViewModel(store, main);
+    vm.WeekType = WorkWeekType.DoubleRest;
+    vm.SaveCommand.Execute(null);
+
+    var policies = store.CurrentSettings.WeekPolicies;
+    // No version at/after 08-01 other than the new one may survive
+    Assert.DoesNotContain(policies, p => p.EffectiveFrom >= FirstOfMonth && p.Type == WorkWeekType.SingleRest);
+    Assert.Equal(WorkWeekType.DoubleRest, WeekAt(policies, today).Type);
+
+    // Whole current month resolves from the new rule (holiday-free days only):
+    // Mon–Fri work, Sat+Sun rest — including today, whatever weekday it is.
+    var config = store.CurrentConfiguration;
+    foreach (var date in EachDayOf(FirstOfMonth))
+    {
+        if (config.Holidays.Get(date) is null)
+        {
+            var weekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+            Assert.Equal(weekend ? DayStatus.Rest : DayStatus.Work, config.ResolveDayStatus(date));
+        }
+    }
+    Assert.Equal(
+        Today.DayOfWeek == DayOfWeek.Sunday ? DayStatus.Rest : DayStatus.Work,
+        config.ResolveDayStatus(Today));
+}
+
+/// <summary>Calendar preview follows the same supersede semantics as the save path.</summary>
+[Fact]
+public void DraftPreview_SupersedesLaterDatedVersions()
+{
+    var store = CreateStore();
+    var main = new MainViewModel(store);
+    var today = Today;
+
+    store.Commit(store.CurrentSettings with
+    {
+        WeekPolicies =
+        [
+            WorkWeekPolicy.Create(WorkWeekType.DoubleRest, new DateOnly(2000, 1, 1)),
+            WorkWeekPolicy.Create(WorkWeekType.SingleRest, today.AddDays(-1)),
+        ],
+    });
+
+    var vm = new SettingsViewModel(store, main);
+    vm.WeekType = WorkWeekType.DoubleRest; // chip click → ApplyWeekToDraft (unsaved preview)
+
+    var preview = vm.Draft.BuildPreviewConfiguration(store.PayData);
+    Assert.Equal(WorkWeekType.DoubleRest, WeekAt(vm.Draft.WeekPolicies, today).Type);
+    // Today resolves through the NEW rule (double rest), not the old 单休 version:
+    Assert.Equal(WorkWeekType.DoubleRest, preview.ResolveWeekPolicy(today).Type);
+    Assert.Equal(
+        Today.DayOfWeek == DayOfWeek.Sunday ? DayStatus.Rest : DayStatus.Work,
+        preview.ResolveDayStatus(today));
+}
+
+/// <summary>Future-dated versions are also superseded when the user picks an earlier date.</summary>
+[Fact]
+public void EarlierChosenDate_SupersedesFutureVersion()
+{
+    var store = CreateStore();
+    var main = new MainViewModel(store);
+    var vm = new SettingsViewModel(store, main);
+
+    // Seed a future raise (09-15 @ 6500), then re-save this month at 6000 from the 1st
+    vm.AmountText = "6500";
+    vm.Choice = SettingsViewModel.EffectiveDateChoice.Custom;
+    vm.CustomEffectiveDateText = new DateOnly(Today.Year, 9, 15).ToString("yyyy-MM-dd");
+    vm.SaveCommand.Execute(null);
+
+    var vm2 = new SettingsViewModel(store, main);
+    vm2.AmountText = "6000";
+    vm2.Choice = SettingsViewModel.EffectiveDateChoice.FirstOfMonth;
+    vm2.SaveCommand.Execute(null);
+
+    var profiles = store.CurrentSettings.SalaryProfiles;
+    Assert.DoesNotContain(profiles, p => p.EffectiveFrom >= FirstOfMonth && p.MonthlyAmount == 6500m);
+    Assert.Equal(6000m, MonthlyAt(profiles, Today).MonthlyAmount);
+}
 }

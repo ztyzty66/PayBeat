@@ -1,3 +1,4 @@
+using Microsoft.Win32;
 using PayBeat.App.Domain;
 using PayBeat.App.Helpers;
 using PayBeat.App.Models;
@@ -41,6 +42,9 @@ public class MainViewModel : ViewModelBase, IDisposable
         _nextMilestoneThreshold = _settings.MilestoneAmount;
 
         _store.ConfigurationChanged += OnConfigurationChanged;
+        // Wake/resume and manual clock edits don't pass through the refresh timer — hook the
+        // system time-change event so the date check runs on the next pump.
+        SystemEvents.TimeChanged += OnSystemTimeChanged;
 
         OpenSettingsCommand = new RelayCommand(OpenSettings);
         OpenAboutCommand = new RelayCommand(OpenAbout);
@@ -60,6 +64,11 @@ public class MainViewModel : ViewModelBase, IDisposable
     }
 
     public event Action? HotkeySettingsChanged;
+
+    /// <summary>Raised once per UI-thread refresh when the system calendar date has changed
+    /// since the previous refresh (midnight rollover, sleep/resume, manual clock edit).
+    /// Long-lived views such as the Calendar page subscribe to re-render "today".</summary>
+    public event Action<DateOnly>? DateChanged;
     public event Action<string, string>? NotificationRequested;
 
     public bool AlwaysOnTop => _settings.AlwaysOnTop;
@@ -153,6 +162,7 @@ public class MainViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
+        SystemEvents.TimeChanged -= OnSystemTimeChanged;
         _store.ConfigurationChanged -= OnConfigurationChanged;
         _wakeTimer?.Stop();
         _timer.Stop();
@@ -243,13 +253,7 @@ public class MainViewModel : ViewModelBase, IDisposable
         var now = DateTime.Now;
         var today = DateOnly.FromDateTime(now);
 
-        if (today != _notifiedDate)
-        {
-            OnDayRollover(_notifiedDate, today);
-            _notifiedDate = today;
-            _nextMilestoneThreshold = _settings.MilestoneAmount;
-            _endOfDayReminderSent = false;
-        }
+        CheckDateRoll(today);
 
         if (today.Month != _cachedMonth.Month || today.Year != _cachedMonth.Year)
             RebuildMonthCache(now);
@@ -293,6 +297,36 @@ public class MainViewModel : ViewModelBase, IDisposable
         {
             _timer.Stop();
             ScheduleWakeTimer(now);
+        }
+    }
+
+    /// <summary>
+    /// Detects that the system date moved past <see cref="_notifiedDate"/> (midnight, sleep
+    /// spanning midnight, clock change), runs the existing day-rollover bookkeeping once, and
+    /// notifies long-lived views. Called from every refresh, the wake timer and the system
+    /// time-changed event — no dedicated midnight timer.
+    /// </summary>
+    public void CheckDateRoll(DateOnly today)
+    {
+        if (today == _notifiedDate)
+        {
+            return;
+        }
+
+        OnDayRollover(_notifiedDate, today);
+        _notifiedDate = today;
+        _nextMilestoneThreshold = _settings.MilestoneAmount;
+        _endOfDayReminderSent = false;
+        DateChanged?.Invoke(today);
+    }
+
+    private void OnSystemTimeChanged(object? sender, EventArgs e)
+    {
+        // Sleep/resume or manual clock edit: re-run the date check on the next refresh.
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        if (today != _notifiedDate)
+        {
+            Refresh();
         }
     }
 

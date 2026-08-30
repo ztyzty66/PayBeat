@@ -1,7 +1,8 @@
 <UserControl x:Class="PayBeat.App.Views.CalendarPageControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:helpers="clr-namespace:PayBeat.App.Helpers">
+             xmlns:helpers="clr-namespace:PayBeat.App.Helpers"             Loaded="OnLoaded"
+             Unloaded="OnUnloaded">
 
     <UserControl.Resources>
         <Style x:Key="CalendarHeader" TargetType="TextBlock">

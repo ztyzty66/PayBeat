@@ -21,6 +21,7 @@ public class CalendarDayVm
 
     /// <summary>Tooltip for the manual-override badge.</summary>
     public string OverrideTip => LocalizationService.Get("Calendar.ManualBadge");
+
     public string StatusKey => Status switch { DayStatus.Work => "Calendar.Legend.Work", DayStatus.Rest => "Calendar.Legend.Rest", DayStatus.PublicHoliday => "Calendar.Legend.Holiday", DayStatus.MakeupWork => "Calendar.Legend.Makeup", DayStatus.PaidTimeOff => "Calendar.Legend.Pto", DayStatus.Leave => "Calendar.Legend.Leave", _ => "Calendar.Legend.Work" };
     public string Tag => Status switch { DayStatus.Work => "", DayStatus.Rest => LocalizationService.Get("Calendar.Legend.Rest"), DayStatus.PublicHoliday => LocalizationService.Get("Calendar.Status.Holiday"), DayStatus.MakeupWork => LocalizationService.Get("Calendar.Legend.Makeup"), DayStatus.PaidTimeOff => LocalizationService.Get("Calendar.Legend.Pto"), DayStatus.Leave => LocalizationService.Get("Calendar.Legend.Leave"), _ => "" };
     public bool ShowDot => IsCurrentMonth && Status == DayStatus.Work;
@@ -30,8 +31,12 @@ public class CalendarDayVm
 }
 
 /// <summary>
-/// View model behind the calendar page. Uses shared <see cref="ConfigurationDraft"/> within SettingsWindow,
-/// or reads from <see cref="ConfigurationStore"/> when standalone.
+/// View model behind the calendar page. Tracks "today" as live state: the MainViewModel
+/// raises <see cref="MainViewModel.DateChanged"/> whenever the system date rolls over
+/// (midnight during a refresh, wake from sleep, clock change) and this view model rebuilds —
+/// including auto-advancing the displayed month when it was showing the current month.
+/// There is no persistent selection visual: the green border marks Today only, so today and
+/// any day the user was last editing are independent by construction.
 /// </summary>
 public class CalendarViewModel : ViewModelBase
 {
@@ -39,6 +44,7 @@ public class CalendarViewModel : ViewModelBase
     private readonly MainViewModel _mainVm;
     private readonly ConfigurationDraft? _draft;
     private PayConfiguration _config = null!;
+    private DateOnly _today;
     private DateOnly _displayMonth;
     private string _monthTitle = "";
     private IReadOnlyList<CalendarDayVm> _days = [];
@@ -52,8 +58,9 @@ public class CalendarViewModel : ViewModelBase
         // edits, schedule manager activation, day-editor overrides). Draft and this view model
         // share the settings window's lifetime, so no unsubscribe is needed.
         draft.Changed += Rebuild;
-        var today = DateOnly.FromDateTime(DateTime.Now);
-        _displayMonth = new DateOnly(today.Year, today.Month, 1);
+        Attach();
+        _today = DateOnly.FromDateTime(DateTime.Now);
+        _displayMonth = new DateOnly(_today.Year, _today.Month, 1);
         Rebuild();
     }
 
@@ -61,10 +68,65 @@ public class CalendarViewModel : ViewModelBase
     {
         _store = store;
         _mainVm = mainVm;
-        var today = DateOnly.FromDateTime(DateTime.Now);
-        _displayMonth = new DateOnly(today.Year, today.Month, 1);
+        Attach();
+        _today = DateOnly.FromDateTime(DateTime.Now);
+        _displayMonth = new DateOnly(_today.Year, _today.Month, 1);
         Rebuild();
     }
+
+    /// <summary>Subscribes to date-change and draft-preview notifications. Idempotent; called
+    /// from the page's Loaded event so tab switches re-arm after Detach.</summary>
+    public void Attach()
+    {
+        _mainVm.DateChanged -= OnDateChanged;
+        _mainVm.DateChanged += OnDateChanged;
+        if (_draft is not null)
+        {
+            _draft.Changed -= Rebuild;
+            _draft.Changed += Rebuild;
+        }
+    }
+
+    /// <summary>Unsubscribes (page unloaded / tab switched away).</summary>
+    public void Detach()
+    {
+        _mainVm.DateChanged -= OnDateChanged;
+        if (_draft is not null)
+        {
+            _draft.Changed -= Rebuild;
+        }
+    }
+
+    /// <summary>Month currently displayed (exposed for date-rollover assertions).</summary>
+    public DateOnly DisplayMonth => _displayMonth;
+
+    /// <summary>Today as last observed from the system clock.</summary>
+    public DateOnly Today => _today;
+
+    /// <summary>
+    /// Applies a new "today": always refreshes the grid, and auto-advances the displayed month
+    /// only when it was showing the current month — a user browsing a historical month is left
+    /// where they are (the 今天 button returns to the real current month).
+    /// </summary>
+    public void ApplyToday(DateOnly newToday)
+    {
+        if (newToday == _today)
+        {
+            return;
+        }
+
+        var oldMonth = new DateOnly(_today.Year, _today.Month, 1);
+        var wasViewingCurrentMonth = _displayMonth == oldMonth;
+        _today = newToday;
+        if (wasViewingCurrentMonth)
+        {
+            _displayMonth = new DateOnly(newToday.Year, newToday.Month, 1);
+        }
+
+        Rebuild();
+    }
+
+    private void OnDateChanged(DateOnly newToday) => ApplyToday(newToday);
 
     public IReadOnlyList<CalendarDayVm> Days { get => _days; private set => SetField(ref _days, value); }
     public string MonthTitle { get => _monthTitle; private set => SetField(ref _monthTitle, value); }
@@ -75,7 +137,14 @@ public class CalendarViewModel : ViewModelBase
 
     public void PreviousMonth() { _displayMonth = _displayMonth.AddMonths(-1); Rebuild(); }
     public void NextMonth() { _displayMonth = _displayMonth.AddMonths(1); Rebuild(); }
-    public void GoToToday() { var today = DateOnly.FromDateTime(DateTime.Now); _displayMonth = new DateOnly(today.Year, today.Month, 1); Rebuild(); }
+
+    /// <summary>Returns to the real current month using the clock value at click time.</summary>
+    public void GoToToday()
+    {
+        _today = DateOnly.FromDateTime(DateTime.Now);
+        _displayMonth = new DateOnly(_today.Year, _today.Month, 1);
+        Rebuild();
+    }
 
     public void EditDay(CalendarDayVm day)
     {
@@ -97,7 +166,7 @@ public class CalendarViewModel : ViewModelBase
     private void Rebuild()
     {
         _config = _draft != null ? _draft.BuildPreviewConfiguration(_store.PayData) : _store.CurrentConfiguration;
-        var today = DateOnly.FromDateTime(DateTime.Now);
+        var today = _today;
         MonthTitle = string.Format(LocalizationService.Get("Calendar.Title"), _displayMonth.Year, _displayMonth.Month);
         var cells = new List<CalendarDayVm>();
         var leading = ((int)_displayMonth.DayOfWeek + 6) % 7;

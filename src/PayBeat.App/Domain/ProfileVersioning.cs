@@ -27,29 +27,34 @@ public static class ProfileVersioning
 
     /// <summary>
     /// Upserts a profile into a collection. If a profile with the same EffectiveFrom already exists,
-    /// it is replaced. If a profile with the same effective date but different content exists,
-    /// the new one replaces it. No two profiles of the same type share the same EffectiveFrom.
+    /// it is replaced. No two profiles of the same type share the same EffectiveFrom.
+    /// Deterministic: same-date always means replace, regardless of content equality.
     /// </summary>
-    public static List<T> Upsert<T>(List<T> profiles, T newProfile, Func<T, DateOnly> getEffectiveFrom, Func<T, T, bool> areEqual)
+    public static List<T> Upsert<T>(List<T> profiles, T newProfile, Func<T, DateOnly> getEffectiveFrom)
     {
         var effectiveFrom = getEffectiveFrom(newProfile);
         var result = new List<T>(profiles);
 
-        // Find any existing profile with the same effective date
         var existingIndex = result.FindIndex(p => getEffectiveFrom(p) == effectiveFrom);
         if (existingIndex >= 0)
         {
-            // Same date: replace in place (upsert same-date entry)
             result[existingIndex] = newProfile;
         }
         else
         {
-            // Different date: add the new profile
             result.Add(newProfile);
         }
 
         return result;
     }
+
+    /// <summary>
+    /// Legacy overload kept for call-site compatibility. The <paramref name="areEqual"/>
+    /// parameter is accepted but intentionally ignored — same-date upsert is always
+    /// date-keyed, never content-keyed.
+    /// </summary>
+    public static List<T> Upsert<T>(List<T> profiles, T newProfile, Func<T, DateOnly> getEffectiveFrom, Func<T, T, bool> areEqual)
+        => Upsert(profiles, newProfile, getEffectiveFrom);
 
     /// <summary>
     /// Ensures no two profiles share the same EffectiveFrom date. Deterministic last-write-wins:
@@ -72,5 +77,16 @@ public static class ProfileVersioning
 
         result.Reverse();
         return result;
+    }
+
+    /// <summary>
+    /// Normalizes a profile collection: removes same-date duplicates (last-write-wins) and
+    /// sorts by EffectiveFrom. Used during load/migration to clean up any legacy duplicates.
+    /// </summary>
+    public static List<T> Normalize<T>(List<T> profiles, Func<T, DateOnly> getEffectiveFrom)
+    {
+        var deduped = DeduplicateByDate(profiles, getEffectiveFrom);
+        deduped.Sort((a, b) => getEffectiveFrom(a).CompareTo(getEffectiveFrom(b)));
+        return deduped;
     }
 }

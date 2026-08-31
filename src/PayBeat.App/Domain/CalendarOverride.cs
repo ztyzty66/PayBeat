@@ -46,11 +46,70 @@ public record LeaveRecord(LeaveKind Kind, TimeOnly Start = default, TimeOnly End
         LeaveKind.FullDay => (schedule.WorkStart, schedule.WorkEnd),
         LeaveKind.Morning => schedule.LunchSpan() is { } lunch
             ? (schedule.WorkStart, lunch.Start)
-            : (schedule.WorkStart, schedule.WorkEnd),
+            : HalfDaySplit(schedule, isMorning: true),
         LeaveKind.Afternoon => schedule.LunchSpan() is { } lunch
             ? (lunch.End, schedule.WorkEnd)
-            : (schedule.WorkStart, schedule.WorkEnd),
+            : HalfDaySplit(schedule, isMorning: false),
         LeaveKind.Hours => (Start, End),
         _ => null,
     };
+
+    /// <summary>
+    /// When no lunch break is configured, splits the work window at the effective-work-seconds
+    /// midpoint so Morning = first half, Afternoon = second half, and both together equal
+    /// the full effective work time.
+    /// </summary>
+    private static (TimeOnly Start, TimeOnly End) HalfDaySplit(WorkScheduleProfile schedule, bool isMorning)
+    {
+        // For schedules without lunch, EffectiveWorkSeconds == (WorkEnd - WorkStart) in seconds.
+        var totalSeconds = schedule.EffectiveWorkSeconds();
+        var halfSeconds = totalSeconds / 2.0;
+
+        var startSeconds = schedule.WorkStart.Hour * 3600 + schedule.WorkStart.Minute * 60;
+        if (isMorning)
+        {
+            var endSeconds = startSeconds + (int)Math.Ceiling(halfSeconds);
+            return (schedule.WorkStart, SecondsToTimeOnly(endSeconds));
+        }
+        else
+        {
+            var midSeconds = startSeconds + (int)Math.Floor(halfSeconds);
+            return (SecondsToTimeOnly(midSeconds), schedule.WorkEnd);
+        }
+    }
+
+    private static TimeOnly SecondsToTimeOnly(int totalSeconds)
+    {
+        var hours = totalSeconds / 3600;
+        var minutes = (totalSeconds % 3600) / 60;
+        return new TimeOnly(Math.Clamp(hours, 0, 23), Math.Clamp(minutes, 0, 59));
+    }
+
+    /// <summary>
+    /// Validates this leave record against the schedule. Returns null if valid, or a
+    /// localized error message if invalid.
+    /// </summary>
+    public string? Validate(WorkScheduleProfile schedule, Func<string, string> localize)
+    {
+        if (Kind != LeaveKind.Hours) return null;
+
+        if (Start >= End)
+        {
+            return localize("Error.LeaveStartAfterEnd");
+        }
+
+        // Check that the requested span intersects with at least one effective work span.
+        var hasOverlap = false;
+        foreach (var (ws, we) in schedule.EffectiveSpans())
+        {
+            if (Start < we && End > ws) { hasOverlap = true; break; }
+        }
+
+        if (!hasOverlap)
+        {
+            return localize("Error.LeaveOutsideWorkHours");
+        }
+
+        return null;
+    }
 }

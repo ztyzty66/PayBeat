@@ -82,9 +82,11 @@ public partial class ScheduleManagerWindow
         LunchStartTime.SelectedTime = schedule.LunchBreakStart;
         LunchEndTime.SelectedTime = schedule.LunchBreakEnd;
         EffectiveFromBox.Text = schedule.EffectiveFrom.ToString("yyyy-MM-dd");
-        // An unsaved in-window draft cannot be activated or deleted yet.
-        DeleteButton.IsEnabled = !isActive && !isPending;
-        ActivateButton.IsEnabled = !isActive && !isPending;
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var isHistorical = schedule.EffectiveFrom < today;
+        // An unsaved in-window draft or historical version cannot be activated or deleted.
+        DeleteButton.IsEnabled = !isActive && !isPending && !isHistorical;
+        ActivateButton.IsEnabled = !isActive && !isPending && !isHistorical;
         CurrentLabel.Visibility = isActive ? Visibility.Visible : Visibility.Collapsed;
         FormError.Text = "";
     }
@@ -144,7 +146,6 @@ public partial class ScheduleManagerWindow
         {
             var entry = new WorkScheduleProfile
             {
-                // Keep the pending card's id so the saved row stays trackable (badge → pending).
                 Id = _selected?.Id ?? Guid.NewGuid().ToString("N"),
                 Name = name,
                 WorkStart = start,
@@ -154,17 +155,15 @@ public partial class ScheduleManagerWindow
                 LunchBreakEnd = lunchEnd,
                 EffectiveFrom = effectiveFrom,
             };
-            // Same-day upsert: a new submission replaces the existing version of that date.
             schedules = ProfileVersioning.Upsert(schedules, entry, s => s.EffectiveFrom, (a, b) => a.Id == b.Id);
         }
         else
         {
-            var index = schedules.FindIndex(s => s.Id == _selected.Id);
-            if (index < 0) return;
-            var edited = schedules[index];
-            var updated = new WorkScheduleProfile
+            var existing = schedules.FirstOrDefault(s => s.Id == _selected.Id);
+            if (existing is null) return;
+            var edited = new WorkScheduleProfile
             {
-                Id = edited.EffectiveFrom < today ? Guid.NewGuid().ToString("N") : edited.Id,
+                Id = existing.Id,
                 Name = name,
                 WorkStart = start,
                 WorkEnd = end,
@@ -173,18 +172,9 @@ public partial class ScheduleManagerWindow
                 LunchBreakEnd = lunchEnd,
                 EffectiveFrom = effectiveFrom,
             };
-            if (edited.EffectiveFrom < today)
-            {
-                // Never rewrite history: create a new version effective from the requested date.
-                schedules = ProfileVersioning.Upsert(schedules, updated, s => s.EffectiveFrom, (a, b) => a.Id == b.Id);
-            }
-            else
-            {
-                schedules = ProfileVersioning.Upsert(schedules, updated, s => s.EffectiveFrom, (a, b) => a.Id == b.Id);
-            }
+            schedules = ScheduleVersioning.Edit(schedules, edited, today);
         }
 
-        schedules = ProfileVersioning.DeduplicateByDate(schedules, s => s.EffectiveFrom);
         _draft.ScheduleProfiles = schedules;
         if (_selected is null)
         {
@@ -209,18 +199,12 @@ public partial class ScheduleManagerWindow
     {
         if (_selected is null) return;
         var today = DateOnly.FromDateTime(DateTime.Now);
-        var selected = _settings.ScheduleProfiles.FirstOrDefault(s => s.Id == _selected.Id);
-        if (selected is null) return;
-        // "设为当前" means "use it from today" — for past-effective AND future-effective
-        // schedules alike (e.g. a winter schedule dated 2026-10-01 activated in August).
-        var activated = selected.EffectiveFrom == today ? selected : selected with { EffectiveFrom = today };
-        // "设为当前" owns today's version: other same-date entries are superseded by upsert;
-        // historical (< today) entries are never touched.
-        var others = _settings.ScheduleProfiles.Where(s => s.Id != selected.Id).ToList();
-        var schedules = ProfileVersioning.Upsert(others, activated, s => s.EffectiveFrom, (a, b) => a.Id == b.Id);
-        schedules = ProfileVersioning.DeduplicateByDate(schedules, s => s.EffectiveFrom);
-        _draft.ScheduleProfiles = schedules;
-        _selected = activated;
+        var result = ScheduleVersioning.Activate(
+            _settings.ScheduleProfiles, _selected.Id, today);
+        if (result is null) return;
+        _draft.ScheduleProfiles = result;
+        _selected = result.FirstOrDefault(s => s.Id == _selected.Id)
+                    ?? result.OrderByDescending(s => s.EffectiveFrom).First();
         _isNewEntry = false;
         Reload();
     }
@@ -228,9 +212,18 @@ public partial class ScheduleManagerWindow
     private void OnDelete(object sender, RoutedEventArgs e)
     {
         if (_selected is null) return;
-        var activeId = _config.ResolveSchedule(DateOnly.FromDateTime(DateTime.Now)).Id;
-        if (_selected.Id == activeId) { FormError.Text = "⚠ 当前使用中的方案不能删除"; return; }
-        var schedules = _settings.ScheduleProfiles.Where(s => s.Id != _selected.Id).ToList();
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var (success, schedules) = ScheduleVersioning.Delete(
+            _settings.ScheduleProfiles, _selected.Id, today, _config);
+        if (!success)
+        {
+            var activeId = _config.ResolveSchedule(today).Id;
+            if (_selected.Id == activeId)
+                FormError.Text = "⚠ 当前使用中的方案不能删除";
+            else if (_selected.EffectiveFrom < today)
+                FormError.Text = "⚠ 历史版本不能删除";
+            return;
+        }
         _draft.ScheduleProfiles = schedules;
         _pendingSavedIds.Remove(_selected.Id);
         _selected = null;

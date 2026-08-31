@@ -2,7 +2,7 @@ namespace PayBeat.App.Services;
 
 /// <summary>
 /// Lightweight file logger for best-effort diagnostics. Writes to
-/// <c>%APPDATA%\PayBeat\logs\app.log</c>. All methods swallow failures — logging must
+/// <c>%APPDATA%\今日薪动\logs\</c>. All methods swallow failures — logging must
 /// never crash the application. Does not record sensitive content.
 /// </summary>
 public static class AppLogger
@@ -15,9 +15,7 @@ public static class AppLogger
     /// </summary>
     public static void Initialize(string? logDirectory = null)
     {
-        _logDirectory = logDirectory
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                           "PayBeat", "logs");
+        _logDirectory = logDirectory ?? AppPaths.LogsDirectory;
         try { Directory.CreateDirectory(_logDirectory); } catch { }
     }
 

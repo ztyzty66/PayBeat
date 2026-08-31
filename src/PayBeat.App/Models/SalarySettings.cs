@@ -147,8 +147,8 @@ public record SalarySettings
 
     // ── v2 configuration model (versioned profiles, overrides) ──────────────────────────
 
-    /// <summary>Schema version of this settings file. 1 = legacy flat settings; 2 = versioned profiles.</summary>
-    public int ConfigVersion { get; init; } = 2;
+    /// <summary>Schema version of this settings file. Current: v3 (versioned profiles).</summary>
+    public int ConfigVersion { get; init; } = 3;
 
     /// <summary>
     /// Versioned salary profiles; the effective one for a date is the latest EffectiveFrom ≤ date.

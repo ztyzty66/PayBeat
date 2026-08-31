@@ -53,8 +53,9 @@ public class PayDataService
         _historyService = historyService;
     }
 
-    /// <summary>Builds the effective configuration from persisted settings + built-in holidays.</summary>
-    public PayConfiguration BuildConfiguration()
+    /// <summary>Builds the effective configuration from persisted settings + built-in holidays.
+    /// Internal: prefer ConfigurationStore.CurrentConfiguration for runtime reads.</summary>
+    internal PayConfiguration BuildConfiguration()
     {
         var s = _settingsService.Load();
         return BuildConfiguration(s);

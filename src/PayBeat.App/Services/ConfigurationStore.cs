@@ -73,6 +73,19 @@ public sealed class ConfigurationStore
     }
 
     /// <summary>
+    /// Lightweight persistence-only update: saves to disk and updates in-memory state
+    /// without firing ConfigurationChanged or HotkeySettingsChanged. Use for trivial
+    /// updates like window position that should not trigger hotkey re-registration
+    /// or full UI rebuilds.
+    /// </summary>
+    public void CommitSettingsOnly(SalarySettings settings)
+    {
+        _settingsService.Save(settings);
+        _currentSettings = settings;
+        _currentConfig = _payData.BuildConfiguration(settings);
+    }
+
+    /// <summary>
     /// Creates a <see cref="ConfigurationDraft"/> initialized from the current settings.
     /// The draft is a mutable snapshot used by SettingsWindow and its child editors.
     /// </summary>

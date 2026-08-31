@@ -31,31 +31,31 @@ public class ConfigurationDraft
     /// <summary>The underlying settings being edited.</summary>
     public SalarySettings Base => _base;
 
-    /// <summary>Current salary profiles.</summary>
+    /// <summary>Current salary profiles. Returns a defensive copy to prevent in-place mutation.</summary>
     public List<SalaryProfile> SalaryProfiles
     {
-        get => _base.SalaryProfiles;
+        get => new(_base.SalaryProfiles);
         set => _base = _base with { SalaryProfiles = value };
     }
 
-    /// <summary>Current schedule profiles.</summary>
+    /// <summary>Current schedule profiles. Returns a defensive copy to prevent in-place mutation.</summary>
     public List<WorkScheduleProfile> ScheduleProfiles
     {
-        get => _base.ScheduleProfiles;
+        get => new(_base.ScheduleProfiles);
         set => _base = _base with { ScheduleProfiles = value };
     }
 
-    /// <summary>Current week policies.</summary>
+    /// <summary>Current week policies. Returns a defensive copy to prevent in-place mutation.</summary>
     public List<WorkWeekPolicy> WeekPolicies
     {
-        get => _base.WeekPolicies;
+        get => new(_base.WeekPolicies);
         set => _base = _base with { WeekPolicies = value };
     }
 
-    /// <summary>Per-date overrides.</summary>
+    /// <summary>Per-date overrides. Returns a defensive copy to prevent in-place mutation.</summary>
     public Dictionary<string, CalendarOverride> Overrides
     {
-        get => _base.Overrides;
+        get => new(_base.Overrides);
         set => _base = _base with { Overrides = value };
     }
 

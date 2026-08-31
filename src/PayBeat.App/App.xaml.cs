@@ -31,6 +31,10 @@ public partial class App
 
     protected override void OnExit(ExitEventArgs e)
     {
+        // Take an idempotent exit snapshot so history is recorded even if the app
+        // closes before midnight rollover. Duplicate calls are safe (upsert by date).
+        _mainVm?.ExitSnapshot();
+
         if (_mainWindow != null)
         {
             var pos = _mainWindow.LastKnownPosition
@@ -198,8 +202,8 @@ public partial class App
 
     private void SaveWindowPosition(WindowPosition pos)
     {
-        if (_mainVm == null || _settingsService == null) return;
-        var settings = _store!.CurrentSettings;
+        if (_mainVm == null || _store == null) return;
+        var settings = _store.CurrentSettings;
         var updated = _mainVm.DisplayMode switch
         {
             DisplayMode.Normal => settings with { NormalPosition = pos },
@@ -207,7 +211,7 @@ public partial class App
             DisplayMode.Flex => settings with { FlexPosition = pos },
             _ => settings
         };
-        _settingsService.Save(updated);
+        _store.CommitSettingsOnly(updated);
     }
 
     private void ShowMainWindow(SalarySettings settings)

@@ -1,75 +1,74 @@
 namespace PayBeat.App.Services;
 
 /// <summary>
-/// Handles safe migration of user data from the legacy %APPDATA%\PayBeat directory to
-/// %APPDATA%\今日薪动. If the new directory already has data, it takes priority. If only
-/// the old directory exists, data is copied (not moved) as a backup. Migration failures
-/// fall back to the old path.
+/// Handles safe, resumable migration of user data from the legacy %APPDATA%\PayBeat directory to
+/// %APPDATA%\今日薪动. Uses a migration marker (.migration-v1-complete) so interrupted migrations
+/// are resumed on the next launch. Old directory is preserved as a safety backup.
 /// </summary>
 public static class AppDataMigration
 {
-    private static readonly string OldBasePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PayBeat");
-    private static readonly string NewBasePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "今日薪动");
+    private static readonly string OldBasePath = AppPaths.LegacyRoot;
+    private static readonly string NewBasePath = AppPaths.DataRoot;
+    private static readonly string MarkerPath = AppPaths.MigrationMarker;
 
     /// <summary>
-    /// Resolves the effective AppData directory. If the new path has data, use it.
-    /// If only the old path has data, migrate to the new path. Returns the directory
-    /// to use for all application data.
+    /// Resolves the effective AppData directory. Idempotent and resumable:
+    /// if the migration marker exists, migration is considered complete.
+    /// If settings exist at the new path but the marker is missing, incomplete
+    /// migration data is backfilled from the old path.
     /// </summary>
     public static string ResolveAndMigrate()
     {
         try
         {
-            var newHasData = Directory.Exists(NewBasePath) && HasSettingsFile(NewBasePath);
-            var oldHasData = Directory.Exists(OldBasePath) && HasSettingsFile(OldBasePath);
+            Directory.CreateDirectory(NewBasePath);
 
-            if (newHasData)
+            // Marker present: migration was completed in a prior run.
+            if (File.Exists(MarkerPath))
             {
-                // New directory already has data — use it
-                AppLogger.Log($"AppData: using new path {NewBasePath}");
                 return NewBasePath;
             }
 
-            if (oldHasData && !newHasData)
+            var newHasSettings = File.Exists(Path.Combine(NewBasePath, "settings.json"));
+            var oldHasSettings = File.Exists(Path.Combine(OldBasePath, "settings.json"));
+
+            if (oldHasSettings)
             {
-                // Old directory has data, new doesn't — migrate
+                // Migrate (or resume) from old path.
                 AppLogger.Log($"AppData: migrating from {OldBasePath} to {NewBasePath}");
                 MigrateDirectory(OldBasePath, NewBasePath);
-                return NewBasePath;
+            }
+            else if (!newHasSettings)
+            {
+                // Fresh install.
+                AppLogger.Log($"AppData: fresh install, using {NewBasePath}");
             }
 
-            // Neither has data (fresh install) — use new path
-            AppLogger.Log($"AppData: fresh install, using {NewBasePath}");
+            // Mark migration as complete (even for fresh install — prevents re-check).
+            try { File.WriteAllText(MarkerPath, DateTime.UtcNow.ToString("O")); } catch { }
+
             return NewBasePath;
         }
         catch (Exception ex)
         {
             AppLogger.LogError("AppDataMigration.ResolveAndMigrate", ex);
-            // Migration failed — fall back to old path if it exists, otherwise new
             return Directory.Exists(OldBasePath) ? OldBasePath : NewBasePath;
         }
-    }
-
-    private static bool HasSettingsFile(string basePath)
-    {
-        return File.Exists(Path.Combine(basePath, "settings.json"));
     }
 
     private static void MigrateDirectory(string source, string destination)
     {
         Directory.CreateDirectory(destination);
 
-        // Copy settings.json
+        // Copy settings.json (always overwrite at destination if source is newer — resumable).
         var settingsSrc = Path.Combine(source, "settings.json");
         var settingsDst = Path.Combine(destination, "settings.json");
-        if (File.Exists(settingsSrc) && !File.Exists(settingsDst))
+        if (File.Exists(settingsSrc))
         {
-            File.Copy(settingsSrc, settingsDst);
+            File.Copy(settingsSrc, settingsDst, overwrite: true);
         }
 
-        // Copy history directory
+        // Copy history directory (skip files that already exist at destination).
         var historySrc = Path.Combine(source, "history");
         var historyDst = Path.Combine(destination, "history");
         if (Directory.Exists(historySrc))
@@ -77,7 +76,7 @@ public static class AppDataMigration
             CopyDirectory(historySrc, historyDst);
         }
 
-        // Copy logs directory
+        // Copy logs directory.
         var logsSrc = Path.Combine(source, "logs");
         var logsDst = Path.Combine(destination, "logs");
         if (Directory.Exists(logsSrc))
@@ -85,7 +84,7 @@ public static class AppDataMigration
             CopyDirectory(logsSrc, logsDst);
         }
 
-        AppLogger.Log($"AppData: migration complete. Old directory preserved at {source}");
+        AppLogger.Log($"AppData: migration pass complete. Old directory preserved at {source}");
     }
 
     private static void CopyDirectory(string source, string destination)

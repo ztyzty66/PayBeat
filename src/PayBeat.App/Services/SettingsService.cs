@@ -24,9 +24,7 @@ public class SettingsService
         _filePath = Path.Combine(directoryPath, "settings.json");
     }
 
-    private static string DefaultDirectoryPath() =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                     "PayBeat");
+    private static string DefaultDirectoryPath() => AppPaths.DataRoot;
 
     /// <summary>Exposes the settings directory for sibling stores (history snapshots).</summary>
     public string SettingsDirectory => _directoryPath;

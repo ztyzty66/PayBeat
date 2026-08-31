@@ -10,8 +10,8 @@
 #endif
 
 #define AppName "PayBeat"
-#define AppPublisher "coldhighsun"
-#define AppUrl "https://github.com/coldhighsun/PayBeat"
+#define AppPublisher "tztyty66"
+#define AppUrl "https://github.com/tztyty66/PayBeat"
 #define AppExeName "PayBeat.exe"
 #define PublishDir "..\publish-selfcontained"
 

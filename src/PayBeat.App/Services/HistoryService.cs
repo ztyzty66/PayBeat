@@ -26,6 +26,7 @@ public sealed record MonthHistory
     public decimal MonthTargetSnapshot { get; init; }
     public decimal MonthEarnedSnapshot { get; init; }
     public int PlannedWorkdays { get; init; }
+    public int PassedWorkdaysSnapshot { get; init; }
     public int PtoDays { get; init; }
     public decimal LeaveHours { get; init; }
     public string WorkWeekTypeSnapshot { get; init; } = "";

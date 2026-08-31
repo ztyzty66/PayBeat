@@ -187,6 +187,7 @@ public static class SalaryEngine
             }
 
             // "Passed" workdays drive the 15/26-style progress: planned workdays strictly before today.
+            // Today is NOT counted as "passed" until it completes (via exit snapshot or rollover).
             if (date < today
                 && day.Status is DayStatus.Work or DayStatus.MakeupWork
                 && day.LeaveSeconds < day.TotalEffectiveSeconds)

@@ -168,6 +168,24 @@ public class MainViewModel : ViewModelBase, IDisposable
         _timer.Stop();
     }
 
+    /// <summary>
+    /// Takes an idempotent exit snapshot of the current day. Called from App.OnExit
+    /// so that history is recorded even if the app closes before midnight rollover.
+    /// Duplicate calls for the same day are safe (RecordDay is an upsert by date key).
+    /// </summary>
+    public void ExitSnapshot()
+    {
+        try
+        {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            var day = SalaryEngine.ComputeDay(_config, today);
+            _store.PayData.SnapshotDay(day, _config, _config.PlannedWorkdays(today));
+            var lastOfMonth = new DateOnly(today.Year, today.Month, DateTime.DaysInMonth(today.Year, today.Month));
+            if (today == lastOfMonth) FinalizeMonth(today);
+        }
+        catch (Exception ex) { AppLogger.LogError("MainViewModel.ExitSnapshot", ex); }
+    }
+
     public void ResumeNotifications() => _notificationsSuspended = false;
     public void SuspendNotifications() => _notificationsSuspended = true;
 
@@ -406,6 +424,7 @@ public class MainViewModel : ViewModelBase, IDisposable
             MonthTargetSnapshot = summary.MonthTarget,
             MonthEarnedSnapshot = summary.MonthEarned,
             PlannedWorkdays = summary.PlannedWorkdays,
+            PassedWorkdaysSnapshot = summary.PassedWorkdays,
             PtoDays = summary.PtoDays,
             LeaveHours = summary.LeaveHours,
             WorkWeekTypeSnapshot = _config.ResolveWeekPolicy(lastDay).Type.ToString(),

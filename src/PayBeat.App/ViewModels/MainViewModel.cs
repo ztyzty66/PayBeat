@@ -327,7 +327,9 @@ public class MainViewModel : ViewModelBase, IDisposable
 
         var schedule = _today.Computation.Schedule;
         var current = TimeOnly.FromDateTime(now);
-        if (current <= schedule.WorkStart || current >= schedule.WorkEnd)
+        // Before work we can sleep until today's start. At the exact WorkStart boundary
+        // the live timer must remain running; using <= here would immediately stop it again.
+        if (current < schedule.WorkStart || current >= schedule.WorkEnd)
         {
             _timer.Stop();
             ScheduleWakeTimer(now);
@@ -512,28 +514,7 @@ public class MainViewModel : ViewModelBase, IDisposable
     private void ScheduleWakeTimer(DateTime now)
     {
         _wakeTimer?.Stop();
-        var current = TimeOnly.FromDateTime(now);
-
-        // Wake boundary = min(next midnight, next relevant work-start).
-        // Next midnight ensures CheckDateRoll fires even on rest days.
-        var nextMidnight = now.Date.AddDays(1);
-
-        // Next relevant work-start must use the NEXT DAY's resolved schedule,
-        // not today's schedule — otherwise a schedule change at 00:00 is missed.
-        var nextDay = now.Date.AddDays(1);
-        var nextDaySchedule = _config.ResolveSchedule(DateOnly.FromDateTime(nextDay));
-        var nextWorkStart = nextDay + nextDaySchedule.WorkStart.ToTimeSpan();
-
-        // If next day's WorkStart has already passed (shouldn't happen at midnight,
-        // but guard), fall back to the day after.
-        if (nextWorkStart <= now)
-        {
-            nextDay = now.Date.AddDays(2);
-            nextDaySchedule = _config.ResolveSchedule(DateOnly.FromDateTime(nextDay));
-            nextWorkStart = nextDay + nextDaySchedule.WorkStart.ToTimeSpan();
-        }
-
-        var wakeBoundary = nextMidnight < nextWorkStart ? nextMidnight : nextWorkStart;
+        var wakeBoundary = WakeSchedulePolicy.NextWakeBoundary(now, _config);
         var delay = wakeBoundary - now;
         if (delay <= TimeSpan.Zero) delay = TimeSpan.FromMinutes(1);
 

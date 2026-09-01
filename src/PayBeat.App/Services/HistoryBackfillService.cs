@@ -21,10 +21,16 @@ public static class HistoryBackfillService
     {
         try
         {
-            var latestDate = FindLatestHistoryDate(history);
+            // First repair internal holes inside already-recorded month ranges.
+            // Example: 08-28 exists, 08-29 missing, 08-30 exists. A latest-date-only
+            // strategy can never see 08-29, so scan between the first and last recorded
+            // day of each existing month and fill only missing dates.
+            RepairInternalGaps(history, config, today);
+
             var startDate = DetermineStartDate(history, today);
 
-            // Backfill from startDate to yesterday (today is not yet complete).
+            // Then repair the trailing gap from the latest known record to yesterday.
+            // Today is intentionally excluded because it is not finalized yet.
             var day = startDate;
             while (day < today)
             {
@@ -43,6 +49,49 @@ public static class HistoryBackfillService
         catch (Exception ex)
         {
             AppLogger.LogError("HistoryBackfillService.Backfill", ex);
+        }
+    }
+
+    private static void RepairInternalGaps(HistoryService history, PayConfiguration config, DateOnly today)
+    {
+        foreach (var month in history.ListMonths())
+        {
+            var loaded = history.Load(month);
+            if (loaded is null || loaded.Days.Count < 2) continue;
+
+            var recordedDates = loaded.Days.Keys
+                .Select(key => DateOnly.TryParseExact(key, "yyyy-MM-dd", out var date)
+                    ? (DateOnly?)date
+                    : null)
+                .Where(date => date.HasValue && date.Value < today)
+                .Select(date => date!.Value)
+                .OrderBy(date => date)
+                .ToList();
+
+            if (recordedDates.Count < 2) continue;
+
+            var existing = new HashSet<DateOnly>(recordedDates);
+            var cursor = recordedDates[0];
+            var end = recordedDates[^1];
+            var changed = false;
+
+            while (cursor <= end && cursor < today)
+            {
+                if (existing.Add(cursor))
+                {
+                    SnapshotDay(history, config, cursor);
+                    changed = true;
+                }
+                cursor = cursor.AddDays(1);
+            }
+
+            // If a completed past month changed, recompute its frozen aggregate so the
+            // month snapshot cannot remain stale after an internal-hole repair.
+            var lastOfMonth = new DateOnly(month.Year, month.Month, DateTime.DaysInMonth(month.Year, month.Month));
+            if (changed && lastOfMonth < today)
+            {
+                FinalizeMonth(history, config, lastOfMonth);
+            }
         }
     }
 

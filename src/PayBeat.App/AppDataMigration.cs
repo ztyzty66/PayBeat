@@ -45,14 +45,19 @@ public static class AppDataMigration
             }
 
             // Mark migration as complete (even for fresh install — prevents re-check).
-            try { File.WriteAllText(MarkerPath, DateTime.UtcNow.ToString("O")); } catch { }
+            // A marker failure is recoverable because migration is idempotent, but it must
+            // be visible in logs rather than silently swallowed.
+            try { File.WriteAllText(MarkerPath, DateTime.UtcNow.ToString("O")); }
+            catch (Exception ex) { AppLogger.LogError("AppDataMigration.Marker", ex); }
 
             return NewBasePath;
         }
         catch (Exception ex)
         {
             AppLogger.LogError("AppDataMigration.ResolveAndMigrate", ex);
-            return Directory.Exists(OldBasePath) ? OldBasePath : NewBasePath;
+            // LegacyRoot is migration-source only. Never reactivate it as the runtime
+            // source of truth after a partial migration failure.
+            return NewBasePath;
         }
     }
 

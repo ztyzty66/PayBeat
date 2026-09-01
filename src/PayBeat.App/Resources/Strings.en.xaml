@@ -228,7 +228,8 @@
 <sys:String x:Key="Calendar.Source.MakeupWork">Makeup workday</sys:String>
 <sys:String x:Key="Calendar.Source.WeekPolicy">Work policy</sys:String>
 <sys:String x:Key="Calendar.Source.DefaultRule">Default rule</sys:String>
-<sys:String x:Key="Calendar.ManualBadge">Manual</sys:String>
+    <sys:String x:Key="Calendar.ManualBadge">Manual</sys:String>
+    <sys:String x:Key="Calendar.HolidayCoverageWarning">Official holiday data for this year is not yet available. Days follow the work week policy and manual overrides.</sys:String>
 <sys:String x:Key="Settings.Card.Pay">Salary</sys:String>
 <sys:String x:Key="Settings.Card.Work">Work policy</sys:String>
 <sys:String x:Key="Settings.Card.Schedule">Schedule</sys:String>

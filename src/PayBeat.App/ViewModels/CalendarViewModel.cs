@@ -132,6 +132,22 @@ public class CalendarViewModel : ViewModelBase
     public string MonthTitle { get => _monthTitle; private set => SetField(ref _monthTitle, value); }
     public IReadOnlyList<CalendarDayVm> Grid => Days;
 
+    private bool _hasHolidayCoverageWarning;
+    /// <summary>True when the displayed month's year is not covered by the built-in holiday dataset.</summary>
+    public bool HasHolidayCoverageWarning
+    {
+        get => _hasHolidayCoverageWarning;
+        private set => SetField(ref _hasHolidayCoverageWarning, value);
+    }
+
+    private string _holidayCoverageWarning = "";
+    /// <summary>Localized warning text for uncovered holiday years.</summary>
+    public string HolidayCoverageWarning
+    {
+        get => _holidayCoverageWarning;
+        private set => SetField(ref _holidayCoverageWarning, value);
+    }
+
     /// <summary>Re-renders the month grid from the current store/draft state.</summary>
     public void Refresh() => Rebuild();
 
@@ -178,5 +194,12 @@ public class CalendarViewModel : ViewModelBase
             cells.Add(new CalendarDayVm { Owner = this, Date = date, IsCurrentMonth = date.Month == _displayMonth.Month, IsToday = date == today, Status = status, HasLeave = _config.ResolveLeave(date) is not null, HasOverride = _config.Overrides.ContainsKey(date) });
         }
         Days = cells;
+
+        // Check holiday coverage for the displayed year.
+        var holidays = HolidayService.BuiltIn;
+        HasHolidayCoverageWarning = !holidays.CoversYear(_displayMonth.Year);
+        HolidayCoverageWarning = HasHolidayCoverageWarning
+            ? LocalizationService.Get("Calendar.HolidayCoverageWarning")
+            : "";
     }
 }

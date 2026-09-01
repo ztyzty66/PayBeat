@@ -228,7 +228,8 @@
 <sys:String x:Key="Calendar.Source.MakeupWork">官方补班</sys:String>
 <sys:String x:Key="Calendar.Source.WeekPolicy">工作制度</sys:String>
 <sys:String x:Key="Calendar.Source.DefaultRule">默认规则</sys:String>
-<sys:String x:Key="Calendar.ManualBadge">手动设置</sys:String>
+    <sys:String x:Key="Calendar.ManualBadge">手动设置</sys:String>
+    <sys:String x:Key="Calendar.HolidayCoverageWarning">当前年份的法定节假日数据尚未内置，将按工作制和手动日历设置计算。</sys:String>
 <sys:String x:Key="Settings.Card.Pay">工资</sys:String>
 <sys:String x:Key="Settings.Card.Work">工作制度</sys:String>
 <sys:String x:Key="Settings.Card.Schedule">作息方案</sys:String>

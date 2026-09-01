@@ -10,8 +10,8 @@
 #endif
 
 #define AppName "PayBeat"
-#define AppPublisher "tztyty66"
-#define AppUrl "https://github.com/tztyty66/PayBeat"
+#define AppPublisher "ztyzty66"
+#define AppUrl "https://github.com/ztyzty66/PayBeat"
 #define AppExeName "PayBeat.exe"
 #define PublishDir "..\publish-selfcontained"
 
@@ -55,9 +55,6 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: deskto
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
-
-[UninstallDelete]
-Type: filesandordirs; Name: "{userappdata}\{#AppName}"
 
 [Code]
 function InitializeSetup(): Boolean;

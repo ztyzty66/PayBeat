@@ -16,21 +16,36 @@ public readonly record struct HolidayEntry(DateOnly Date, bool IsOffDay, string 
 public sealed class HolidayCalendar
 {
     private readonly Dictionary<DateOnly, HolidayEntry> _entries;
+    private readonly IReadOnlySet<int> _coveredYears;
 
     public HolidayCalendar(IEnumerable<HolidayEntry> entries)
     {
         _entries = entries.GroupBy(e => e.Date).ToDictionary(g => g.Key, g => g.First());
+        _coveredYears = _entries.Keys.Select(d => d.Year).ToHashSet();
         Version = "unknown";
     }
 
     private HolidayCalendar(Dictionary<DateOnly, HolidayEntry> entries, string version)
     {
         _entries = entries;
+        _coveredYears = entries.Keys.Select(d => d.Year).ToHashSet();
         Version = version;
     }
 
     /// <summary>Dataset version / coverage note, e.g. "2025-2026".</summary>
     public string Version { get; }
+
+    /// <summary>Years with at least one official holiday entry in this dataset.</summary>
+    public IReadOnlySet<int> CoveredYears => _coveredYears;
+
+    /// <summary>Earliest year with coverage, or null if empty.</summary>
+    public int? MinCoveredYear => _coveredYears.Count > 0 ? _coveredYears.Min() : null;
+
+    /// <summary>Latest year with coverage, or null if empty.</summary>
+    public int? MaxCoveredYear => _coveredYears.Count > 0 ? _coveredYears.Max() : null;
+
+    /// <summary>Returns true if the dataset contains at least one entry for the given year.</summary>
+    public bool CoversYear(int year) => _coveredYears.Contains(year);
 
     /// <summary>Looks up the official entry for a date, or <see langword="null"/>.</summary>
     public HolidayEntry? Get(DateOnly date) =>

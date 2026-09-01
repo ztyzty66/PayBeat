@@ -15,6 +15,7 @@ namespace PayBeat.App.ViewModels;
 public class MainViewModel : ViewModelBase, IDisposable
 {
     private readonly ConfigurationStore _store;
+    private readonly UpdateService _updateService;
     private readonly DispatcherTimer _timer;
     private DateOnly _notifiedDate;
     private decimal _nextMilestoneThreshold;
@@ -33,9 +34,10 @@ public class MainViewModel : ViewModelBase, IDisposable
     private string _statusKey = "Status.Working";
     private string _statusDetail = "";
 
-    public MainViewModel(ConfigurationStore store)
+    public MainViewModel(ConfigurationStore store, UpdateService? updateService = null)
     {
         _store = store;
+        _updateService = updateService ?? new UpdateService();
         _settings = store.CurrentSettings;
         _config = store.CurrentConfiguration;
         _notifiedDate = DateOnly.FromDateTime(DateTime.Now);
@@ -229,6 +231,7 @@ public class MainViewModel : ViewModelBase, IDisposable
     }
 
     public void ReloadSettings() => _store.Reload();
+    public UpdateService UpdateService => _updateService;
 
     public void NotifyUpdateAvailable(string version) =>
         NotificationRequested?.Invoke(
@@ -252,7 +255,7 @@ public class MainViewModel : ViewModelBase, IDisposable
         {
             if (w is SettingsWindow existing) { existing.Activate(); return; }
         }
-        var win = new SettingsWindow { DataContext = new SettingsViewModel(_store, this) };
+        var win = new SettingsWindow { DataContext = new SettingsViewModel(_store, this, _updateService) };
         ApplyTopmostIfNeeded(win);
         win.Show();
     }

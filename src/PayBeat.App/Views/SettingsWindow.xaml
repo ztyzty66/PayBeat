@@ -647,18 +647,88 @@
                                 </StackPanel>
                             </Border>
 
-                            <!-- Card D: about -->
+                            <!-- Card D: about + update -->
                             <Border Style="{StaticResource GroupCard}">
                                 <StackPanel>
                                     <TextBlock Text="{DynamicResource System.Card.About}" Style="{StaticResource CardTitle}" />
                                     <TextBlock Text="今日薪动"
                                    Foreground="{DynamicResource TextBrush}"
-                                   FontSize="16" FontWeight="Bold" Margin="0,0,0,4"/>
+                                   FontSize="16" FontWeight="Bold" Margin="0,0,0,2"/>
                                     <TextBlock Text="{DynamicResource About.Tagline}"
                                    Foreground="{DynamicResource SubtextBrush}"
                                    FontSize="11.5"
                                    TextWrapping="Wrap"
-                                   Margin="0,0,0,10"/>
+                                   Margin="0,0,0,6"/>
+                                    <!-- Version + update status -->
+                                    <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,0,0,2">
+                                        <Run Text="{Binding UpdateStatusText, Mode=OneWay, FallbackValue=''}"/>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding CurrentVersion, Mode=OneWay}"
+                                   Foreground="{DynamicResource MutedBrush}"
+                                   FontSize="11" Margin="0,0,0,6">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UpdateStatusText}" Value="">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <!-- Check for updates button -->
+                                    <Button Content="{DynamicResource Settings.Update.CheckButton}"
+                                            Command="{Binding CheckUpdateCommand}"
+                                            Background="{DynamicResource SurfaceBrush}"
+                                            Foreground="{DynamicResource TextBrush}"
+                                            Padding="10,5" Margin="0,0,0,6"
+                                            HorizontalAlignment="Left">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsChecking}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <!-- Download progress -->
+                                    <StackPanel Visibility="{Binding IsDownloading, Mode=OneWay}">
+                                        <ProgressBar Value="{Binding DownloadProgress, Mode=OneWay}"
+                                                     Maximum="100" Height="6" Margin="0,0,0,4"/>
+                                        <TextBlock Text="{Binding UpdateStatusText, Mode=OneWay}"
+                                                   Foreground="{DynamicResource SubtextBrush}" FontSize="11"/>
+                                    </StackPanel>
+                                    <!-- Download + install button (when update available) -->
+                                    <Button Content="{DynamicResource Settings.Update.DownloadButton}"
+                                            Command="{Binding DownloadInstallCommand}"
+                                            Background="{DynamicResource SurfaceBrush}"
+                                            Foreground="{DynamicResource TextBrush}"
+                                            Padding="10,5" Margin="0,0,0,6"
+                                            HorizontalAlignment="Left"
+                                            Visibility="{Binding IsDownloading, Mode=OneWay, Converter={StaticResource BoolToCollapsedConverter}}"/>
+                                    <!-- Release notes -->
+                                    <TextBlock Text="{Binding UpdateReleaseNotes, Mode=OneWay}"
+                                   Foreground="{DynamicResource SubtextBrush}"
+                                   FontSize="10.5"
+                                   TextWrapping="Wrap"
+                                   MaxHeight="120"
+                                   Margin="0,0,0,6">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UpdateReleaseNotes}" Value="">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <!-- Attribution -->
                                     <TextBlock Text="{DynamicResource Settings.BasedOn}"
                                    Foreground="{DynamicResource MutedBrush}"
                                    FontSize="11"

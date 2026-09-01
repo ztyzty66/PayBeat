@@ -21,6 +21,7 @@ public partial class App
     private MainWindow? _mainWindow;
     private SettingsService? _settingsService;
     private ConfigurationStore? _store;
+    private UpdateService? _updateService;
     private Mutex? _singleInstanceMutex;
     private SalarySettings? _startupSettings;
     private TrayIconService? _trayIconService;
@@ -87,6 +88,22 @@ public partial class App
 
         _trayIconService = new TrayIconService(_mainVm!, ActivateMainWindow);
 
+        // Auto-check for updates on startup (delayed, non-blocking).
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(5000);
+            if (_updateService is not null && _mainVm is not null)
+            {
+                try
+                {
+                    var result = await _updateService.CheckForUpdateAsync();
+                    if (result is { Available: true })
+                        _mainVm.NotifyUpdateAvailable(result.RemoteVersion!);
+                }
+                catch { /* silent — auto-check must never break core flow */ }
+            }
+        });
+
         if (!settings.SetupCompleted)
         {
             var firstRun = new FirstRunWindow(_store!);
@@ -145,7 +162,7 @@ public partial class App
 
     private void CreateMainViewModelAndWindow()
     {
-        _mainVm = new MainViewModel(_store!);
+        _mainVm = new MainViewModel(_store!, _updateService);
         _mainVm.HotkeySettingsChanged += OnHotkeySettingsChanged;
 
         _mainWindow = new MainWindow { DataContext = _mainVm };
@@ -159,6 +176,7 @@ public partial class App
         _settingsService = new SettingsService(dataDir);
         var historyService = new HistoryService(Path.Combine(dataDir, "history"));
         _store = new ConfigurationStore(_settingsService, historyService);
+        _updateService = new UpdateService();
 
         // Backfill any missed history days (crash recovery, multi-day gap).
         HistoryBackfillService.Backfill(historyService, _store.CurrentConfiguration, DateOnly.FromDateTime(DateTime.Now));

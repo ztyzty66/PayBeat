@@ -216,7 +216,7 @@
     <sys:String x:Key="Notification.EndOfDayTitle">快下班了</sys:String>
     <sys:String x:Key="Notification.EndOfDayBody">还有 {0} 分钟下班。</sys:String>
     <sys:String x:Key="Notification.UpdateAvailableTitle">发现新版本</sys:String>
-    <sys:String x:Key="Notification.UpdateAvailableBody">今日薪动 v{0} 已发布，打开“关于”窗口下载。</sys:String>
+    <sys:String x:Key="Notification.UpdateAvailableBody">今日薪动 v{0} 已发布，打开 设置→系统 即可更新。</sys:String>
 <sys:String x:Key="Schedule.LunchShort">午休 {0} – {1}</sys:String>
 <sys:String x:Key="Schedule.EffectiveFromShort">{0} 起</sys:String>
 <sys:String x:Key="Schedule.ActiveBadge">✅ 当前使用</sys:String>
@@ -254,7 +254,7 @@
 <sys:String x:Key="Settings.Effective.Custom">自定义日期</sys:String>
 <sys:String x:Key="Settings.Effective.Scope">适用于工资金额与工作制度；作息方案从今天起生效</sys:String>
 <sys:String x:Key="Error.EffectiveDateInvalid">⚠ 自定义生效日期格式无效，例如 2026-08-01</sys:String>
-<sys:String x:Key="Status.Fish">🐟 摸鱼赚钱中</sys:String>
+    <sys:String x:Key="Status.Fish">💰 正在计薪</sys:String>
 <sys:String x:Key="Status.AlmostDone">⏳ 马上可以下班啦</sys:String>
 <sys:String x:Key="Status.DoneEmoji">🎉 今日份工资进度完成</sys:String>
 <sys:String x:Key="Status.LunchEmoji">🍜 午休中</sys:String>
@@ -266,6 +266,15 @@
 <sys:String x:Key="Status.LeavePartial">🌴 今日有请假</sys:String>
 <sys:String x:Key="Schedule.NewName">🆕 新作息方案</sys:String>
 <sys:String x:Key="Schedule.BadgeUnsaved">未保存</sys:String>
-<sys:String x:Key="Schedule.BadgePending">待提交</sys:String>
+    <sys:String x:Key="Schedule.BadgePending">待提交</sys:String>
+    <sys:String x:Key="Settings.Update.Checking">正在检查更新...</sys:String>
+    <sys:String x:Key="Settings.Update.UpToDate">✓ 当前已是最新版本</sys:String>
+    <sys:String x:Key="Settings.Update.Available">发现新版本 v{0}</sys:String>
+    <sys:String x:Key="Settings.Update.Downloading">正在下载 v{0}</sys:String>
+    <sys:String x:Key="Settings.Update.Error">检查更新失败，请稍后重试</sys:String>
+    <sys:String x:Key="Settings.Update.VerifyFailed">文件校验失败，已取消安装</sys:String>
+    <sys:String x:Key="Settings.Update.CheckButton">检查更新</sys:String>
+    <sys:String x:Key="Settings.Update.DownloadButton">下载并安装</sys:String>
+    <sys:String x:Key="Settings.Update.VersionLabel">当前版本 v{0}</sys:String>
 
 </ResourceDictionary>

@@ -659,40 +659,16 @@
                                    FontSize="11.5"
                                    TextWrapping="Wrap"
                                    Margin="0,0,0,6"/>
-                                    <!-- Version display (idle state) -->
+                                    <!-- Current version — always visible -->
                                     <TextBlock Text="{Binding CurrentVersion, Mode=OneWay}"
                                    Foreground="{DynamicResource MutedBrush}"
-                                   FontSize="11" Margin="0,0,0,2">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding UpdateStatusText}" Value="">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding UpdateStatusText}" Value="">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <!-- Update status text -->
+                                   FontSize="11" Margin="0,0,0,2"/>
+                                    <!-- Update status text — visible only when non-empty -->
                                     <TextBlock Text="{Binding UpdateStatusText, Mode=OneWay}"
                                    Foreground="{DynamicResource AmberBrush}"
-                                   FontSize="11" Margin="0,0,0,6">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding UpdateStatusText}" Value="">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <!-- Check for updates button (visible when idle, hidden when checking/downloading) -->
+                                   FontSize="11" Margin="0,0,0,6"
+                                   Visibility="{Binding UpdateStatusText, Converter={StaticResource StringNotEmptyToVisibleConverter}}"/>
+                                    <!-- Check for updates button -->
                                     <Button Content="{DynamicResource Settings.Update.CheckButton}"
                                             Command="{Binding CheckUpdateCommand}"
                                             Background="{DynamicResource SurfaceBrush}"
@@ -707,7 +683,7 @@
                                         <TextBlock Text="{Binding UpdateStatusText, Mode=OneWay}"
                                                    Foreground="{DynamicResource SubtextBrush}" FontSize="11"/>
                                     </StackPanel>
-                                    <!-- Download + install button (visible when available, not downloading) -->
+                                    <!-- Download + install button -->
                                     <Button Content="{DynamicResource Settings.Update.DownloadButton}"
                                             Command="{Binding DownloadInstallCommand}"
                                             Background="{DynamicResource SurfaceBrush}"
@@ -715,24 +691,14 @@
                                             Padding="10,5" Margin="0,0,0,6"
                                             HorizontalAlignment="Left"
                                             Visibility="{Binding CanDownloadInstall, Converter={StaticResource BoolToCollapsedConverter}}"/>
-                                    <!-- Release notes (visible when non-empty) -->
+                                    <!-- Release notes — visible when non-empty -->
                                     <TextBlock Text="{Binding UpdateReleaseNotes, Mode=OneWay}"
                                    Foreground="{DynamicResource SubtextBrush}"
                                    FontSize="10.5"
                                    TextWrapping="Wrap"
                                    MaxHeight="120"
-                                   Margin="0,0,0,6">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding UpdateReleaseNotes}" Value="">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
+                                   Margin="0,0,0,6"
+                                   Visibility="{Binding UpdateReleaseNotes, Converter={StaticResource StringNotEmptyToVisibleConverter}}"/>
                                     <!-- Attribution -->
                                     <TextBlock Text="{DynamicResource Settings.BasedOn}"
                                    Foreground="{DynamicResource MutedBrush}"

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using PayBeat.App.Helpers;
 
 namespace PayBeat.App.Services;
@@ -131,12 +132,15 @@ public class UpdateService
         return hex.All(c => "0123456789abcdefABCDEF".Contains(c));
     }
 
-    /// <summary>Validates that a download URL is from the trusted GitHub release path.</summary>
+    /// <summary>Validates that a download URL is from the trusted GitHub release path using Uri.</summary>
     public static bool IsTrustedDownloadUrl(string url)
     {
-        if (!url.StartsWith(TrustedDownloadPrefix, StringComparison.OrdinalIgnoreCase)) return false;
-        var fileName = Path.GetFileName(new Uri(url).AbsolutePath);
-        return fileName.StartsWith("PayBeat-") && fileName.EndsWith("-setup-win-x64.exe");
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return false;
+        if (uri.Scheme != "https") return false;
+        if (uri.Host != "github.com") return false;
+        if (!uri.AbsolutePath.StartsWith("/ztyzty66/PayBeat/releases/download/", StringComparison.OrdinalIgnoreCase)) return false;
+        var fileName = Path.GetFileName(uri.AbsolutePath);
+        return Regex.IsMatch(fileName, @"^PayBeat-\d+\.\d+\.\d+-setup-win-x64\.exe$");
     }
 
     /// <summary>Downloads the installer to a trusted temp directory. Reports progress via callback (0-100).
@@ -193,28 +197,45 @@ public class UpdateService
 
     /// <summary>
     /// Validates that the installer path is within the trusted update root and the file exists.
+    /// Uses Path.GetRelativePath to prevent prefix-sibling attacks (e.g. "updates-evil").
     /// </summary>
     public static bool IsTrustedInstallerPath(string installerPath)
     {
         if (string.IsNullOrEmpty(installerPath)) return false;
         var fullPath = Path.GetFullPath(installerPath);
-        var updateRoot = Path.Combine(Path.GetTempPath(), "PayBeat", "updates");
+        var updateRoot = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "PayBeat", "updates")) + Path.DirectorySeparatorChar;
         if (!fullPath.StartsWith(updateRoot, StringComparison.OrdinalIgnoreCase)) return false;
+        // Verify no directory traversal.
+        var relative = Path.GetRelativePath(updateRoot[..^1], fullPath);
+        if (relative.Contains("..")) return false;
         var fileName = Path.GetFileName(fullPath);
-        return fileName.StartsWith("PayBeat-") && fileName.EndsWith("-setup-win-x64.exe") && File.Exists(fullPath);
+        return Regex.IsMatch(fileName, @"^PayBeat-\d+\.\d+\.\d+-setup-win-x64\.exe$") && File.Exists(fullPath);
     }
+
+    private static readonly System.Text.RegularExpressions.Regex InstallerNameRegex = new(@"^PayBeat-\d+\.\d+\.\d+-setup-win-x64\.exe$", RegexOptions.Compiled);
 
     /// <summary>
     /// Launches a PowerShell helper that waits for the current process to exit,
-    /// then starts the installer. Uses ArgumentList for safe parameter passing.
+    /// then starts the installer. The installer path is passed via environment variable,
+    /// never interpolated into PowerShell script text.
     /// </summary>
     public bool LaunchInstallerAfterExit(string installerPath)
     {
         if (!IsTrustedInstallerPath(installerPath)) return false;
         try
         {
+            var fullPath = Path.GetFullPath(installerPath);
             var pid = Environment.ProcessId;
-            var script = $"Wait-Process -Id {pid}; Start-Process -FilePath '{installerPath}' -Verb RunAs";
+
+            // Fixed script — no path interpolation. Reads from environment variables.
+            const string script = @"
+$pidToWait = [int]$env:PAYBEAT_UPDATE_PID
+$installer = $env:PAYBEAT_UPDATE_INSTALLER
+if (Test-Path $installer) {
+    Wait-Process -Id $pidToWait -ErrorAction SilentlyContinue
+    Start-Process -FilePath $installer -Verb RunAs
+}";
+
             var psi = new ProcessStartInfo("powershell.exe")
             {
                 UseShellExecute = false,
@@ -223,6 +244,8 @@ public class UpdateService
             psi.ArgumentList.Add("-NoProfile");
             psi.ArgumentList.Add("-Command");
             psi.ArgumentList.Add(script);
+            psi.EnvironmentVariables["PAYBEAT_UPDATE_PID"] = pid.ToString();
+            psi.EnvironmentVariables["PAYBEAT_UPDATE_INSTALLER"] = fullPath;
             Process.Start(psi);
             return true;
         }

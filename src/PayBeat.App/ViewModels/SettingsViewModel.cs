@@ -121,7 +121,7 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         SaveCommand = new RelayCommand(Save, CanSave);
         CancelCommand = new RelayCommand(CloseWindow);
         ManageSchedulesCommand = new RelayCommand(OpenScheduleManager);
-        CheckUpdateCommand = new RelayCommand(() => _ = CheckUpdateAsync());
+        CheckUpdateCommand = new RelayCommand(() => _ = CheckUpdateAsync(), () => CanCheckUpdate);
         DownloadInstallCommand = new RelayCommand(() => _ = DownloadInstallAsync(), () => CanDownloadInstall);
         RefreshHotkeyStatus();
     }
@@ -272,8 +272,8 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     public string UpdateStatusText { get => _updateStatusText; private set => SetField(ref _updateStatusText, value); }
     public string UpdateReleaseNotes { get => _updateReleaseNotes; private set => SetField(ref _updateReleaseNotes, value); }
     public int DownloadProgress { get => _downloadProgress; private set => SetField(ref _downloadProgress, value); }
-    public bool IsChecking { get => _isChecking; private set => SetField(ref _isChecking, value); }
-    public bool IsDownloading { get => _isDownloading; private set => SetField(ref _isDownloading, value); }
+    public bool IsChecking { get => _isChecking; private set { if (SetField(ref _isChecking, value)) NotifyUpdateUiStateChanged(); } }
+    public bool IsDownloading { get => _isDownloading; private set { if (SetField(ref _isDownloading, value)) NotifyUpdateUiStateChanged(); } }
     public ICommand CheckUpdateCommand { get; }
     public ICommand DownloadInstallCommand { get; }
 
@@ -290,17 +290,20 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     public bool HasUpdateAvailable
     {
         get => _hasUpdateAvailable;
-        private set
-        {
-            if (SetField(ref _hasUpdateAvailable, value))
-            {
-                ((RelayCommand)DownloadInstallCommand).RaiseCanExecuteChanged();
-            }
-        }
+        private set { if (SetField(ref _hasUpdateAvailable, value)) NotifyUpdateUiStateChanged(); }
     }
 
     public bool CanCheckUpdate => !_isChecking && !_isDownloading;
     public bool CanDownloadInstall => _hasUpdateAvailable && !_isDownloading && !_isChecking;
+
+    /// <summary>Single helper to notify all derived update UI states after any base state change.</summary>
+    private void NotifyUpdateUiStateChanged()
+    {
+        OnPropertyChanged(nameof(CanCheckUpdate));
+        OnPropertyChanged(nameof(CanDownloadInstall));
+        ((RelayCommand)CheckUpdateCommand).RaiseCanExecuteChanged();
+        ((RelayCommand)DownloadInstallCommand).RaiseCanExecuteChanged();
+    }
 
     public async Task CheckUpdateAsync()
     {
@@ -346,7 +349,6 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     {
         if (_isChecking || _isDownloading || _pendingDownloadUrl is null) return;
         IsDownloading = true;
-        HasUpdateAvailable = false;
         DownloadProgress = 0;
         UpdateStatusText = string.Format(LocalizationService.Get("Settings.Update.Downloading"), "");
         try
@@ -355,13 +357,19 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
                 _pendingDownloadUrl,
                 progress => DownloadProgress = progress);
 
-            if (path is null) { UpdateStatusText = LocalizationService.Get("Settings.Update.Error"); return; }
+            if (path is null)
+            {
+                UpdateStatusText = LocalizationService.Get("Settings.Update.Error");
+                HasUpdateAvailable = true; // Allow retry
+                return;
+            }
 
             // SHA256 verification — mandatory.
             if (_pendingSha256 is null || !UpdateService.VerifySha256(path, _pendingSha256))
             {
                 try { File.Delete(path); } catch { }
                 UpdateStatusText = LocalizationService.Get("Settings.Update.VerifyFailed");
+                HasUpdateAvailable = false; // Digest mismatch — must re-check
                 return;
             }
 

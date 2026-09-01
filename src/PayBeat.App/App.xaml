@@ -11,6 +11,7 @@
             </ResourceDictionary.MergedDictionaries>
             <helpers:BoolToCollapsedConverter x:Key="BoolToCollapsedConverter"/>
             <helpers:InvertedBoolToCollapsedConverter x:Key="InvertedBoolToCollapsedConverter"/>
+            <helpers:StringNotEmptyToVisibleConverter x:Key="StringNotEmptyToVisibleConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

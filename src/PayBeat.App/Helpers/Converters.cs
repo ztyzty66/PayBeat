@@ -23,3 +23,13 @@ public sealed class InvertedBoolToCollapsedConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         value is Visibility.Collapsed;
 }
+
+/// <summary>Converts string to Visibility: non-null/non-empty → Visible, null/empty → Collapsed.</summary>
+public sealed class StringNotEmptyToVisibleConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is string s && !string.IsNullOrEmpty(s) ? Visibility.Visible : Visibility.Collapsed;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}

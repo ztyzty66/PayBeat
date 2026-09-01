@@ -98,7 +98,13 @@ public partial class App
                 {
                     var result = await _updateService.CheckForUpdateAsync(AppVersion.Current);
                     if (result.Status == UpdateService.UpdateCheckStatus.Available && result.RemoteVersion is not null)
-                        _mainVm.NotifyUpdateAvailable(result.RemoteVersion);
+                    {
+                        // Marshal notification to UI thread for tray icon safety.
+                        if (Application.Current?.Dispatcher is { } dispatcher)
+                            await dispatcher.InvokeAsync(() => _mainVm.NotifyUpdateAvailable(result.RemoteVersion));
+                        else
+                            _mainVm.NotifyUpdateAvailable(result.RemoteVersion);
+                    }
                 }
                 catch { /* silent — auto-check must never break core flow */ }
             }

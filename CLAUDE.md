@@ -117,6 +117,12 @@ Test categories:
 
 ## CI / Release
 
-`.github/workflows/ci.yml` has two jobs. `build` compiles on every push. `release` runs on `v*` tags: publishes portable and self-contained builds, compiles the Inno Setup installer, and creates a GitHub Release.
+`.github/workflows/ci.yml` has two jobs:
+- `validate` — runs on every push and PR to main; builds and runs all tests.
+- `release` — depends on `validate`; runs only on `v*` tag push; publishes portable and self-contained builds, compiles the Inno Setup installer, and creates a GitHub Release.
 
-User settings are persisted to `%APPDATA%\今日薪动\settings.json` (migrated from legacy `%APPDATA%\PayBeat`).
+User settings are persisted to `%APPDATA%\今日薪动\settings.json` (migrated from legacy `%APPDATA%\PayBeat`). The installer/uninstaller preserves both directories — salary history is user data and must not be deleted on uninstall.
+
+## Holiday Coverage
+
+The built-in official holiday dataset (`Resources/holidays.json`) currently covers **2025–2026**. `HolidayCalendar` exposes `CoveredYears`, `CoversYear(year)`, `MinCoveredYear`, and `MaxCoveredYear` for programmatic coverage detection. When a user views an uncovered year (e.g. 2027), the calendar page displays a non-blocking warning: the year falls back to the work week policy and manual overrides. No future official holiday data is ever fabricated.

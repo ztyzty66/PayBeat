@@ -49,21 +49,35 @@
                 <TextBlock Text="{DynamicResource View.EarnedToday}"
                            Foreground="{DynamicResource SubtextBrush}"
                            FontFamily="Segoe UI" FontSize="20"/>
-                <TextBlock Text="{Binding EarnedFormatted, Mode=OneWay}"
-                           Foreground="{DynamicResource GreenBrush}"
-                           FontFamily="Segoe UI" FontSize="88" FontWeight="Bold"
-                           Margin="0,4,0,0" RenderTransformOrigin="0.5,0.5">
-                    <TextBlock.RenderTransform>
-                        <ScaleTransform x:Name="AmountScale"/>
-                    </TextBlock.RenderTransform>
-                    <TextBlock.Effect>
-                        <DropShadowEffect Color="{DynamicResource GreenColor}" Opacity="0.5" BlurRadius="36" ShadowDepth="0"/>
-                    </TextBlock.Effect>
-                </TextBlock>
-                <TextBlock Text="{Binding TargetTodayFormatted, Mode=OneWay, StringFormat=/{0}}"
-                           Foreground="{DynamicResource MutedBrush}"
-                           FontFamily="Segoe UI" FontSize="22"
-                           Margin="4,0,0,12"/>
+                <!-- Work day: show earnings -->
+                <StackPanel Visibility="{Binding IsRestDay, Converter={StaticResource InvertedBoolToCollapsedConverter}, FallbackValue=Visible}">
+                    <TextBlock Text="{Binding EarnedFormatted, Mode=OneWay}"
+                               Foreground="{DynamicResource GreenBrush}"
+                               FontFamily="Segoe UI" FontSize="88" FontWeight="Bold"
+                               Margin="0,4,0,0" RenderTransformOrigin="0.5,0.5">
+                        <TextBlock.RenderTransform>
+                            <ScaleTransform x:Name="AmountScale"/>
+                        </TextBlock.RenderTransform>
+                        <TextBlock.Effect>
+                            <DropShadowEffect Color="{DynamicResource GreenColor}" Opacity="0.5" BlurRadius="36" ShadowDepth="0"/>
+                        </TextBlock.Effect>
+                    </TextBlock>
+                    <TextBlock Text="{Binding TargetTodayFormatted, Mode=OneWay, StringFormat=/{0}}"
+                               Foreground="{DynamicResource MutedBrush}"
+                               FontFamily="Segoe UI" FontSize="22"
+                               Margin="4,0,0,12"/>
+                </StackPanel>
+                <!-- Rest day: show message -->
+                <StackPanel Visibility="{Binding IsRestDay, Converter={StaticResource BoolToCollapsedConverter}, FallbackValue=Collapsed}">
+                    <TextBlock Text="😴 今天休息"
+                               Foreground="{DynamicResource TextBrush}"
+                               FontFamily="Segoe UI" FontSize="48" FontWeight="SemiBold"
+                               Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding RestDayMessage, Mode=OneWay}"
+                               Foreground="{DynamicResource MutedBrush}"
+                               FontFamily="Segoe UI" FontSize="20"
+                               Margin="4,4,0,12"/>
+                </StackPanel>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -85,7 +99,7 @@
                 <StackPanel Orientation="Horizontal" Margin="2,14,0,0">
                     <TextBlock Text="{Binding StatusText, Mode=OneWay}"
                                Foreground="{DynamicResource GreenBrush}"
-                               FontFamily="Segoe UI" FontSize="16" FontWeight="SemiBold"/>
+                               FontFamily="Segoe UI, Segoe UI Emoji, Segoe UI Symbol" FontSize="16" FontWeight="SemiBold"/>
                     <TextBlock Text="{Binding StatusDetail, Mode=OneWay}"
                                Foreground="{DynamicResource MutedBrush}"
                                FontFamily="Segoe UI" FontSize="16" Margin="10,0,0,0"/>
@@ -167,7 +181,7 @@
                      HorizontalAlignment="Center" VerticalAlignment="Bottom"
                      Margin="0,0,0,64">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE817;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                <TextBlock Text="&#x23F1;" FontFamily="Segoe UI Emoji, Segoe UI Symbol" FontSize="20"
                            Foreground="{DynamicResource GreenBrush}" VerticalAlignment="Center"/>
                 <StackPanel Margin="12,0,0,0">
                     <TextBlock Text="{DynamicResource View.Worked}"
@@ -178,7 +192,7 @@
                 </StackPanel>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE816;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                <TextBlock Text="&#x23F3;" FontFamily="Segoe UI Emoji, Segoe UI Symbol" FontSize="20"
                            Foreground="{DynamicResource PurpleBrush}" VerticalAlignment="Center"/>
                 <StackPanel Margin="12,0,0,0">
                     <TextBlock Text="{DynamicResource View.UntilEnd}"
@@ -189,7 +203,7 @@
                 </StackPanel>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE817;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                <TextBlock Text="💰" FontFamily="Segoe UI Emoji, Segoe UI Symbol" FontSize="18"
                            Foreground="{DynamicResource AmberBrush}" VerticalAlignment="Center"/>
                 <StackPanel Margin="12,0,0,0">
                     <TextBlock Text="{DynamicResource View.MonthEarned}"
@@ -200,7 +214,7 @@
                 </StackPanel>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="&#xE816;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                <TextBlock Text="📅" FontFamily="Segoe UI Emoji, Segoe UI Symbol" FontSize="18"
                            Foreground="{DynamicResource BlueBrush}" VerticalAlignment="Center"/>
                 <StackPanel Margin="12,0,0,0">
                     <TextBlock Text="{DynamicResource View.WorkdaysProgress}"

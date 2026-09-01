@@ -54,7 +54,12 @@ public partial class DetailWindow
         HistStandard.Text = history.StandardMonthlySnapshot.ToString("N2");
         HistTarget.Text = history.MonthTargetSnapshot.ToString("N2");
         HistEarned.Text = history.MonthEarnedSnapshot.ToString("N2");
-        HistWorkdays.Text = $"{history.Days.Count} / {history.PlannedWorkdays}";
+        // Use PassedWorkdaysSnapshot if available; show "--" for old files that lack it.
+        // Never use Days.Count as a workday numerator — it measures snapshot records, not workdays.
+        var passedText = history.PassedWorkdaysSnapshot > 0
+            ? history.PassedWorkdaysSnapshot.ToString()
+            : "--";
+        HistWorkdays.Text = $"{passedText} / {history.PlannedWorkdays}";
 
         var scheduleNames = history.Days.Values
             .Select(d => d.ScheduleSnapshot?.Name)

@@ -45,9 +45,10 @@
     <sys:String x:Key="Status.Leave">今日请假</sys:String>
     <sys:String x:Key="Status.BeforeWork">未上班</sys:String>
     <sys:String x:Key="Status.UntilStart">距上班 {0} 分钟</sys:String>
+    <sys:String x:Key="Status.RestDayMessage">本日不计薪</sys:String>
 
     <!-- Settings window -->
-    <sys:String x:Key="Settings.WindowTitle">PayBeat 设置</sys:String>
+    <sys:String x:Key="Settings.WindowTitle">今日薪动 设置</sys:String>
     <sys:String x:Key="Settings.Title">设置</sys:String>
     <sys:String x:Key="Settings.Cancel">取消</sys:String>
     <sys:String x:Key="Settings.Save">保存</sys:String>
@@ -68,7 +69,7 @@
     <sys:String x:Key="Settings.Week.Double">双休</sys:String>
     <sys:String x:Key="Settings.Week.Single">单休</sys:String>
     <sys:String x:Key="Settings.Week.Custom">自定义</sys:String>
-    <sys:String x:Key="Settings.RestDays">固定休息日</sys:String>
+    <sys:String x:Key="Settings.RestDays">每周工作日</sys:String>
     <sys:String x:Key="Settings.Section.Schedule">作息方案</sys:String>
     <sys:String x:Key="Settings.CurrentSchedule">当前方案</sys:String>
     <sys:String x:Key="Settings.ManageSchedules">管理方案</sys:String>
@@ -94,6 +95,8 @@
     <sys:String x:Key="Schedule.DeleteDisabled">使用中的方案不能删除</sys:String>
     <sys:String x:Key="Schedule.ConfirmDelete">确定删除方案“{0}”吗？</sys:String>
     <sys:String x:Key="Schedule.Close">关闭</sys:String>
+    <sys:String x:Key="Schedule.Activate">设为当前</sys:String>
+    <sys:String x:Key="Schedule.CurrentlyActive">✓ 当前使用中</sys:String>
 
     <!-- Calendar page -->
     <sys:String x:Key="Day.Mon">一</sys:String>
@@ -154,23 +157,25 @@
     <sys:String x:Key="Settings.LanguageAuto">自动</sys:String>
     <sys:String x:Key="Settings.Hotkey">显示/隐藏快捷键</sys:String>
     <sys:String x:Key="Settings.HotkeyHint">点击后输入快捷键组合</sys:String>
+    <sys:String x:Key="Settings.Hotkey.Ok">✓ 快捷键可用</sys:String>
+    <sys:String x:Key="Settings.Hotkey.Conflict">⚠ {0} 已被其他程序占用，当前未生效</sys:String>
     <sys:String x:Key="Settings.HotkeyCapturing">请输入快捷键组合...</sys:String>
     <sys:String x:Key="Settings.Section.About">关于</sys:String>
-    <sys:String x:Key="Settings.BasedOn">基于 PayBeat 二次开发 · 原项目作者 coldhighsun · MIT License</sys:String>
+    <sys:String x:Key="Settings.BasedOn">基于开源项目 PayBeat 二次开发 · 原项目作者 coldhighsun · MIT License</sys:String>
     <sys:String x:Key="Settings.OpenOriginal">访问原项目</sys:String>
 
     <!-- About window -->
-    <sys:String x:Key="About.WindowTitle">关于 PayBeat</sys:String>
+    <sys:String x:Key="About.WindowTitle">关于今日薪动</sys:String>
     <sys:String x:Key="About.Description">一款轻量悬浮组件，实时显示你的当日薪资进度。</sys:String>
     <sys:String x:Key="About.Author">作者</sys:String>
     <sys:String x:Key="About.License">许可证</sys:String>
     <sys:String x:Key="About.GitHub">GitHub</sys:String>
     <sys:String x:Key="About.Close">关闭</sys:String>
-    <sys:String x:Key="About.BasedOn">Based on PayBeat by coldhighsun (MIT)</sys:String>
+    <sys:String x:Key="About.BasedOn">基于开源项目 PayBeat 二次开发</sys:String>
     <sys:String x:Key="About.Version">版本</sys:String>
 
     <!-- First run -->
-    <sys:String x:Key="FirstRun.Title">欢迎使用 PayBeat</sys:String>
+    <sys:String x:Key="FirstRun.Title">欢迎使用今日薪动</sys:String>
     <sys:String x:Key="FirstRun.Subtitle">简单几步配置，看看今天已经赚了多少</sys:String>
     <sys:String x:Key="FirstRun.Start">开始使用</sys:String>
     <sys:String x:Key="FirstRun.Lunch">午休（不计时）</sys:String>
@@ -194,7 +199,7 @@
     <sys:String x:Key="Error.SalaryPositive">工资须大于 0</sys:String>
     <sys:String x:Key="Error.SalaryTooLarge">金额不能超过 99,999,999</sys:String>
     <sys:String x:Key="Error.WorkEndAfterStart">下班时间须晚于上班时间（暂不支持跨日班次）</sys:String>
-    <sys:String x:Key="Error.AlreadyRunning">PayBeat 已在运行中。</sys:String>
+    <sys:String x:Key="Error.AlreadyRunning">今日薪动已在运行中。</sys:String>
     <sys:String x:Key="Error.HotkeyConflict">快捷键 {0} 注册失败，可能已被其他程序占用。</sys:String>
     <sys:String x:Key="Error.LunchBreakInvalid">午休时间必须在工作时间内，且结束时间须晚于开始时间</sys:String>
     <sys:String x:Key="Error.MilestoneAmountPositive">里程碑金额须大于 0</sys:String>
@@ -211,6 +216,56 @@
     <sys:String x:Key="Notification.EndOfDayTitle">快下班了</sys:String>
     <sys:String x:Key="Notification.EndOfDayBody">还有 {0} 分钟下班。</sys:String>
     <sys:String x:Key="Notification.UpdateAvailableTitle">发现新版本</sys:String>
-    <sys:String x:Key="Notification.UpdateAvailableBody">PayBeat v{0} 已发布，打开“关于”窗口下载。</sys:String>
+    <sys:String x:Key="Notification.UpdateAvailableBody">今日薪动 v{0} 已发布，打开“关于”窗口下载。</sys:String>
+<sys:String x:Key="Schedule.LunchShort">午休 {0} – {1}</sys:String>
+<sys:String x:Key="Schedule.EffectiveFromShort">{0} 起</sys:String>
+<sys:String x:Key="Schedule.ActiveBadge">✅ 当前使用</sys:String>
+<sys:String x:Key="Schedule.NotActiveHint">设为当前后生效</sys:String>
+<sys:String x:Key="Calendar.Source.Label">来源</sys:String>
+<sys:String x:Key="Calendar.Source.Status">当前状态</sys:String>
+<sys:String x:Key="Calendar.Source.ManualOverride">用户手动设置</sys:String>
+<sys:String x:Key="Calendar.Source.PublicHoliday">法定节假日</sys:String>
+<sys:String x:Key="Calendar.Source.MakeupWork">官方补班</sys:String>
+<sys:String x:Key="Calendar.Source.WeekPolicy">工作制度</sys:String>
+<sys:String x:Key="Calendar.Source.DefaultRule">默认规则</sys:String>
+    <sys:String x:Key="Calendar.ManualBadge">手动设置</sys:String>
+    <sys:String x:Key="Calendar.HolidayCoverageWarning">当前年份的法定节假日数据尚未内置，将按工作制和手动日历设置计算。</sys:String>
+<sys:String x:Key="Settings.Card.Pay">工资</sys:String>
+<sys:String x:Key="Settings.Card.Work">工作制度</sys:String>
+<sys:String x:Key="Settings.Card.Schedule">作息方案</sys:String>
+<sys:String x:Key="Settings.Card.Info">说明</sys:String>
+<sys:String x:Key="Settings.Info.Text">工资、工作制度和作息方案从指定生效日期起应用；历史数据不会被当前修改覆盖。</sys:String>
+<sys:String x:Key="Display.Card.Widget">悬浮窗</sys:String>
+<sys:String x:Key="Display.Card.Appearance">外观</sys:String>
+<sys:String x:Key="Display.Card.Refresh">刷新</sys:String>
+<sys:String x:Key="Display.RefreshHint">间隔越短，金额刷新越频繁，功耗略增。</sys:String>
+<sys:String x:Key="System.Card.Startup">启动与提醒</sys:String>
+<sys:String x:Key="System.Card.Hotkey">快捷键</sys:String>
+<sys:String x:Key="System.Card.Language">语言</sys:String>
+<sys:String x:Key="System.Card.About">关于</sys:String>
+<sys:String x:Key="About.Tagline">一个帮你实时查看今日工资进度的轻量桌面工具</sys:String>
+<sys:String x:Key="View.TodayTarget">今日目标</sys:String>
+<sys:String x:Key="View.RestTitle">😴 今天休息</sys:String>
+<sys:String x:Key="Schedule.ActiveHint">当前生效方案，切换其他方案请选择后点击「设为当前」</sys:String>
+<sys:String x:Key="Schedule.LunchLabel">午休</sys:String>
+<sys:String x:Key="Settings.Effective.Title">生效时间</sys:String>
+<sys:String x:Key="Settings.Effective.FirstOfMonth">本月1日起</sys:String>
+<sys:String x:Key="Settings.Effective.Today">今天起</sys:String>
+<sys:String x:Key="Settings.Effective.Custom">自定义日期</sys:String>
+<sys:String x:Key="Settings.Effective.Scope">适用于工资金额与工作制度；作息方案从今天起生效</sys:String>
+<sys:String x:Key="Error.EffectiveDateInvalid">⚠ 自定义生效日期格式无效，例如 2026-08-01</sys:String>
+<sys:String x:Key="Status.Fish">🐟 摸鱼赚钱中</sys:String>
+<sys:String x:Key="Status.AlmostDone">⏳ 马上可以下班啦</sys:String>
+<sys:String x:Key="Status.DoneEmoji">🎉 今日份工资进度完成</sys:String>
+<sys:String x:Key="Status.LunchEmoji">🍜 午休中</sys:String>
+<sys:String x:Key="Status.BeforeWorkEmoji">☕ 还没开工</sys:String>
+<sys:String x:Key="Status.RestEmoji">😴 今天休息</sys:String>
+<sys:String x:Key="Status.HolidayEmoji">😴 带薪假日</sys:String>
+<sys:String x:Key="Status.PtoEmoji">😎 带薪调休 · 今天躺着也算工资</sys:String>
+<sys:String x:Key="Status.LeaveEmoji">🌴 今日请假</sys:String>
+<sys:String x:Key="Status.LeavePartial">🌴 今日有请假</sys:String>
+<sys:String x:Key="Schedule.NewName">🆕 新作息方案</sys:String>
+<sys:String x:Key="Schedule.BadgeUnsaved">未保存</sys:String>
+<sys:String x:Key="Schedule.BadgePending">待提交</sys:String>
 
 </ResourceDictionary>

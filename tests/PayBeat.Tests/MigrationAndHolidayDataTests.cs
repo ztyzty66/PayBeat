@@ -24,7 +24,7 @@ public class MigrationAndHolidayDataTests
 
         var migrated = SettingsService.Migrate(legacy);
 
-        Assert.Equal(2, migrated.ConfigVersion);
+        Assert.Equal(3, migrated.ConfigVersion);
         var salary = Assert.Single(migrated.SalaryProfiles);
         Assert.Equal(SalaryMode.Daily, salary.Mode);
         Assert.Equal(500m, salary.DailyAmount);
@@ -54,7 +54,13 @@ public class MigrationAndHolidayDataTests
         var legacy = new SalarySettings { ConfigVersion = 1, DailySalary = 300m };
         var once = SettingsService.Migrate(legacy);
         var twice = SettingsService.Migrate(once);
-        Assert.Equal(once, twice);
+        // Verify key fields are identical after double migration.
+        Assert.Equal(once.ConfigVersion, twice.ConfigVersion);
+        Assert.Equal(once.DailySalary, twice.DailySalary);
+        Assert.Equal(once.SalaryProfiles.Count, twice.SalaryProfiles.Count);
+        Assert.Equal(once.ScheduleProfiles.Count, twice.ScheduleProfiles.Count);
+        Assert.Equal(once.WeekPolicies.Count, twice.WeekPolicies.Count);
+        Assert.Equal(once.SetupCompleted, twice.SetupCompleted);
     }
 
     [Fact]

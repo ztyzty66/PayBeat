@@ -15,6 +15,12 @@ public partial class CalendarPageControl
 
     private CalendarViewModel Vm => (CalendarViewModel)DataContext;
 
+    // TabControl unloads non-selected tab content: detach while hidden, re-attach (and
+    // re-sync today) when the calendar page comes back.
+    private void OnLoaded(object sender, RoutedEventArgs e) => (DataContext as CalendarViewModel)?.Attach();
+
+    private void OnUnloaded(object sender, RoutedEventArgs e) => (DataContext as CalendarViewModel)?.Detach();
+
     private void OnPrevMonth(object sender, RoutedEventArgs e) => Vm.PreviousMonth();
 
     private void OnNextMonth(object sender, RoutedEventArgs e) => Vm.NextMonth();

@@ -18,6 +18,12 @@ public static class LocalizationService
     /// <param name="language">Language code or <c>"auto"</c>.</param>
     public static void Apply(string language)
     {
+        // Null-safe for non-WPF hosts (unit tests): without an Application there is nothing to swap.
+        if (Application.Current is null)
+        {
+            return;
+        }
+
         var resolved = Resolve(language);
         var dicts = Application.Current.Resources.MergedDictionaries;
 
@@ -39,7 +45,7 @@ public static class LocalizationService
     /// </summary>
     /// <param name="key">Resource key defined in the active Strings dictionary.</param>
     public static string Get(string key) =>
-        Application.Current.TryFindResource(key) as string ?? key;
+        Application.Current?.TryFindResource(key) as string ?? key;
 
     private static string Resolve(string language)
     {

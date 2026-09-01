@@ -19,6 +19,12 @@
     <Color x:Key="CaptureBackgroundColor">#DCE8FF</Color>
     <Color x:Key="FlexGradientMidColor">#DCE0E8</Color>
 
+    <!-- V1 card system: neutral light background, pure-white cards, restrained accents -->
+    <Color x:Key="CardColor">#FFFFFF</Color>
+    <Color x:Key="WidgetCardColor">#FBFCFE</Color>
+    <Color x:Key="WidgetHighlightColor">#E9F0F8</Color>
+    <Color x:Key="WarningColor">#DF8E1D</Color>
+
     <SolidColorBrush x:Key="BaseBrush" Color="{StaticResource BaseColor}"/>
     <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}"/>
     <SolidColorBrush x:Key="OverlayBrush" Color="{StaticResource OverlayColor}"/>
@@ -32,13 +38,18 @@
     <SolidColorBrush x:Key="PurpleBrush" Color="{StaticResource PurpleColor}"/>
     <SolidColorBrush x:Key="AmberBrush" Color="{StaticResource AmberColor}"/>
     <SolidColorBrush x:Key="CaptureBackgroundBrush" Color="{StaticResource CaptureBackgroundColor}"/>
+    <SolidColorBrush x:Key="CardBrush" Color="{StaticResource CardColor}"/>
+    <SolidColorBrush x:Key="WidgetCardBrush" Color="{StaticResource WidgetCardColor}"/>
+    <SolidColorBrush x:Key="WidgetHighlightBrush" Color="{StaticResource WidgetHighlightColor}"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
 
-    <!-- Status tag brushes (translucent fills over the base) -->
-    <SolidColorBrush x:Key="TagRestBrush" Color="#40D20F39"/>
-    <SolidColorBrush x:Key="TagHolidayBrush" Color="#40DF8E1D"/>
-    <SolidColorBrush x:Key="TagMakeupBrush" Color="#401E66F5"/>
-    <SolidColorBrush x:Key="TagPtoBrush" Color="#40FE640B"/>
-    <SolidColorBrush x:Key="TagLeaveBrush" Color="#408839EF"/>
-    <SolidColorBrush x:Key="TagWorkBrush" Color="#4040A02B"/>
+    <!-- Status tag brushes (translucent fills over the base; rest kept light so whole
+         weekend columns never dominate the calendar) -->
+    <SolidColorBrush x:Key="TagRestBrush" Color="#2BD20F39"/>
+    <SolidColorBrush x:Key="TagHolidayBrush" Color="#33DF8E1D"/>
+    <SolidColorBrush x:Key="TagMakeupBrush" Color="#331E66F5"/>
+    <SolidColorBrush x:Key="TagPtoBrush" Color="#33FE640B"/>
+    <SolidColorBrush x:Key="TagLeaveBrush" Color="#338839EF"/>
+    <SolidColorBrush x:Key="TagWorkBrush" Color="#3340A02B"/>
 
 </ResourceDictionary>

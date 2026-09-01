@@ -30,55 +30,99 @@ Output goes to `artifacts/bin/PayBeat.App/release/`.
 WPF floating widget app (.NET 10, MVVM). Shows real-time earnings as a borderless, always-on-top window, plus a system tray icon for display-mode switching, Settings/About, and Exit.
 
 **Data flow:**
-`DispatcherTimer` (configurable interval) → `MainViewModel.Refresh()` → `EarningsCalculator.Calculate()` → bound properties update the active view template.
+`DispatcherTimer` (configurable interval) → `MainViewModel.Refresh()` → `SalaryEngine.ComputeDayAt()` → bound properties update the active view template.
 
-**Display modes:** `DisplayMode` has `None`, `Normal`, `Mini`, and `Flex`, swapped inside a single `MainWindow` via `DataTemplate` + `DataTrigger` (`None` shows no window; only the tray icon remains). Double-clicking the widget opens the settings window. Each mode saves its last position independently per screen (`NormalPosition`, `MiniPosition`, `FlexPosition` in `SalarySettings`). `Flex` is a fullscreen "show-off" view (`FlexView`) with a huge earnings figure, full workday stats, and a decorative animated background/glow pulse driven by `ColorAnimation`/`DoubleAnimation` started in its code-behind.
+**Display modes:** `DisplayMode` has `None`, `Normal`, `Mini`, and `Flex`, swapped inside a single `MainWindow` via `DataTemplate` + `DataTrigger`. Each mode saves its last position independently per screen. `Flex` is a fullscreen "show-off" view with a huge earnings figure and animated background.
 
 **Key entry points:**
-- `App.xaml.cs` — owns the object graph (`SettingsService`, `MainViewModel`, `MainWindow`, `HotkeyService`, `TrayIconService`); enforces single-instance via a named `Mutex`; saves window position on exit.
-- `MainViewModel.cs` — owns the `DispatcherTimer` and all earnings/display state; `ReloadSettings()` is called by `SettingsViewModel` after save.
-- `MainWindow.xaml` — borderless `Window` with a `ContentControl` that switches view templates (`NormalView`, `MiniView`, `FlexView`) via `DataTrigger` on `DisplayMode`.
+- `App.xaml.cs` — owns the object graph (`ConfigurationStore`, `MainViewModel`, `MainWindow`, `HotkeyService`, `TrayIconService`); enforces single-instance via a named `Mutex`; saves window position via `CommitSettingsOnly`; runs `HistoryBackfillService.Backfill()` at startup; takes exit snapshot on exit.
+- `MainViewModel.cs` — owns the `DispatcherTimer` and all earnings/display state; `CheckDateRoll()` iterates each missed day individually for multi-day gap recovery; `ScheduleWakeTimer()` delegates to `WakeSchedulePolicy.NextWakeBoundary()` which wakes at today's WorkStart (before work) or next midnight (after work / off-day), ensuring the midnight refresh re-resolves the new day's effective schedule; `ExitSnapshot()` only finalizes days that are truly completed (time >= WorkEnd, or rest/holiday/PTO).
+- `MainWindow.xaml` — borderless `Window` with a `ContentControl` that switches view templates via `DataTrigger` on `DisplayMode`.
 
-**Important patterns:**
-- The tray icon (`TrayIconService`) uses **WinForms** `NotifyIcon` + `ContextMenuStrip` hosted inside the WPF app — any changes must account for the WinForms/WPF interop boundary.
-- `HotkeyService` uses Win32 `RegisterHotKey`/`UnregisterHotKey` P/Invoke; it supports `Suspend()`/`Resume()` to avoid conflicts while the settings window captures key input.
-- `ScreenHelper` uses Win32 P/Invoke for multi-monitor position restore (matches by device name, falls back to nearest monitor).
-- `TopmostHelper` periodically re-asserts the window's topmost z-order via Win32 `SetWindowPos` P/Invoke, working around other apps that steal focus.
-- `ForegroundWatcher` monitors the active foreground window via a Win32 event hook to trigger topmost re-assertion when another window takes focus.
-- `StartupService` manages the Windows startup registry entry (`HKCU\...\Run`) for the "Run at startup" setting.
-- `LocalizationService` handles runtime language switching by swapping `ResourceDictionary` entries in `MergedDictionaries`.
-- Localization: `Strings.en.xaml` / `Strings.zh-CN.xaml` are swapped into `MergedDictionaries` at startup; UI strings use `{DynamicResource}`. `"auto"` resolves from `CultureInfo.CurrentUICulture`.
-- `ThemeService` swaps `Theme.Light.xaml`/`Theme.Dark.xaml` (palette-only resource dictionaries) into `MergedDictionaries` the same way localization does; `"auto"` resolves from the `AppsUseLightTheme` registry value under `HKCU\...\Themes\Personalize`.
+**ConfigurationStore (single source of truth):**
+- `ConfigurationStore` is the canonical runtime state. ViewModels read from `CurrentSettings`/`CurrentConfiguration`.
+- All writes flow through `Commit(settings)` which atomically persists and rebuilds in-memory state.
+- `CommitSettingsOnly(settings)` is a lightweight persistence-only update (for window position) that skips hotkey re-registration and full UI rebuilds.
+- `CreateDraft()` returns a `ConfigurationDraft` — a deep clone with `SalarySettings.DeepClone()` in the constructor, so draft mutations never affect the store.
+
+**Versioned profiles:**
+- `SalaryProfile`, `WorkScheduleProfile`, `WorkWeekPolicy` each carry an `EffectiveFrom` date.
+- `ProfileVersioning.Resolve(profiles, date)` returns the latest profile with `EffectiveFrom <= date`.
+- `ProfileVersioning.Upsert(profiles, newProfile)` replaces same-date entries (date-keyed, deterministic).
+- `ProfileVersioning.DeduplicateByDate(profiles)` ensures at most one entry per date (last-write-wins).
+- `ProfileVersioning.Normalize(profiles)` deduplicates and sorts by date (used during migration).
+
+**Schedule history immutability:**
+- `ScheduleVersioning` (Domain layer) provides `Activate`, `Edit`, `Delete` as pure functions.
+- Historical versions (`EffectiveFrom < today`): never edited or deleted in-place; new versions are created with fresh Ids and `EffectiveFrom = today`.
+- Activate on historical versions is allowed ("re-enable from today") — creates a new today-dated version.
+- Delete is blocked for historical and active schedules; allowed for future versions.
+- Today versions: can be edited in-place.
+- Future versions: can be edited or deleted.
+
+**Leave logic:**
+- `LeaveRecord.RequestedSpan(schedule)` resolves the wall-clock span for a leave kind.
+- With lunch: Morning = `WorkStart → LunchStart`, Afternoon = `LunchEnd → WorkEnd`.
+- Without lunch: Morning = first half of work window, Afternoon = second half (split at effective-work-seconds midpoint).
+- `LeaveRecord.Validate(schedule)` rejects hourly leave with Start >= End or zero overlap with work hours.
+
+**History and snapshots:**
+- `HistoryService` persists per-day and per-month history snapshots to `%APPDATA%\今日薪动\history\`.
+- `MainViewModel.CheckDateRoll()` iterates each missed day individually (multi-day gap recovery, month-boundary finalization).
+- `MainViewModel.ExitSnapshot()` only finalizes days that are truly completed (time >= WorkEnd, or rest/holiday/PTO). Never writes fake "full day" for days still in progress.
+- `HistoryBackfillService.Backfill()` runs at startup: first repairs internal missing-day gaps between existing records within each month, then fills the trailing gap from the latest known record to yesterday. Idempotent, does not overwrite existing day records, uses each day's effective configuration.
+- `MonthHistory.PassedWorkdaysSnapshot` stores the passed workday count at finalization.
+- `DetailWindow` uses `PassedWorkdaysSnapshot`; shows "--" for old files that lack it (never uses `Days.Count`).
+
+**AppData paths:**
+- `AppPaths` provides the single source of truth: `DataRoot` = `%APPDATA%\今日薪动`.
+- `AppDataMigration` handles resumable, non-destructive migration from legacy `%APPDATA%\PayBeat` using a `.migration-v1-complete` marker. New-data-wins: existing destination settings are never overwritten by legacy.
+- `SettingsService.Migrate()` normalizes duplicate EffectiveFrom entries via `ProfileVersioning.Normalize()` on every load.
+- All services (`SettingsService`, `HistoryService`, `AppLogger`) resolve paths from `AppPaths`.
 
 **Models:**
-- `SalarySettings` — immutable `record`; defaults: `DailySalary=500`, `WorkStart=09:00`, `WorkEnd=18:00`, `Currency="¥"`, `DisplayMode=Normal`, `AlwaysOnTop=true`, `Opacity=1.0`, `RefreshInterval=1`, `Language="auto"`, `HotkeyModifiers=0x0003` (Ctrl+Alt), `HotkeyVirtualKey=0x58` (X). `MaxDailySalary` caps input at 99,999,999. Stores per-mode `WindowPosition` (Left, Top, ScreenDeviceName). Also carries `LunchBreakEnabled`/`LunchBreakStart`/`LunchBreakEnd`, `WorkOnWeekends`, and tray-balloon reminder toggles (`EnableEndOfDayReminder`/`EndOfDayReminderMinutes`, `EnableMilestoneNotifications`/`MilestoneAmount`).
-- `EarningsCalculator` — all earnings math is a pure function of `SalarySettings` + `DateTime`; `IsWorkday()` gates weekends, and `EffectiveWorkSeconds()`/`EffectiveElapsedSeconds()` subtract the lunch break window (elapsed time holds steady during the break) before `Calculate()`/`RatePerSecond()`/`WorkdayProgress()` divide by it.
+- `SalarySettings` — immutable `record`; defaults: `DailySalary=500`, `WorkStart=09:00`, `WorkEnd=18:00`, `Currency="¥"`, `DisplayMode=Normal`, `AlwaysOnTop=false`, `ConfigVersion=3`. Versioned collections: `SalaryProfiles`, `ScheduleProfiles`, `WeekPolicies`, `Overrides`.
+- `PayConfiguration` — immutable aggregated view built from `SalarySettings` + `HolidayCalendar`. Provides `ResolveSchedule`, `ResolveSalaryProfile`, `ResolveDayStatus`, `ResolvePlannedStatus`, `PlannedWorkdays`.
+- `SalaryEngine` — pure computation engine: `ComputeDay`, `ComputeDayAt`, `ComputeMonth`, `EffectiveLeaveSeconds`.
 
-**UI theme:** Catppuccin-derived palette, with separate `Theme.Light.xaml`/`Theme.Dark.xaml` dictionaries (dark: background `#1E1E2E`, surface `#313244`, text `#CDD6F4`, green accent `#A6E3A1`, blue accent `#89B4FA`) swapped at runtime by `ThemeService`; structural styles live in `src/PayBeat.App/Resources/Styles.xaml` and reference the palette via `{DynamicResource}`. UI strings live in `Strings.en.xaml` / `Strings.zh-CN.xaml`, also accessed via `{DynamicResource}`.
+**UI theme:** Catppuccin-derived palette, with separate `Theme.Light.xaml`/`Theme.Dark.xaml` dictionaries swapped at runtime by `ThemeService`. UI strings via `{DynamicResource}` from `Strings.en.xaml` / `Strings.zh-CN.xaml`.
 
 ## Solution Configuration
 
-`PayBeat.slnx` (new XML-based solution format) references the single app project — build and run commands typically target the project path directly rather than the solution.
+`PayBeat.slnx` (new XML-based solution format) references the app and test projects.
 
 | File | Purpose |
 |------|---------|
 | `global.json` | Pins SDK to `10.0.100` with `rollForward: latestMinor` |
-| `Directory.Build.props` | Shared build properties: `Nullable`, `ImplicitUsings`, `LangVersion`, `UseArtifactsOutput`, `TreatWarningsAsErrors`, `SatelliteResourceLanguages` (en;zh-CN), `DebugType=embedded`, `MinVerTagPrefix=v`. Imports optional `Directory.Build.user` for local, gitignored overrides (e.g. a custom `ArtifactsPath`). |
+| `Directory.Build.props` | Shared build properties: `Nullable`, `ImplicitUsings`, `LangVersion`, `UseArtifactsOutput`, `TreatWarningsAsErrors` |
 | `Directory.Packages.props` | Central package versions (`ManagePackageVersionsCentrally=true`) |
-| `nuget.config` | Restricts package sources to nuget.org only (`<clear/>` overrides global config) |
+| `nuget.config` | Restricts package sources to nuget.org only |
 
-`PayBeat.App.csproj` targets `net10.0-windows`, sets `UseWPF=true` **and** `UseWindowsForms=true` (WinForms is pulled in for the tray icon's `NotifyIcon`/`ContextMenuStrip`), `PublishSingleFile=true`, and a custom `AssemblyName=PayBeat` (differs from the project name).
+## Tests
 
-Artifacts output to `artifacts/bin/<ProjectName>/<config>/` (SDK artifacts layout via `UseArtifactsOutput=true`).
+```bash
+dotnet test tests/PayBeat.Tests/PayBeat.Tests.csproj -c Release
+```
 
-`TreatWarningsAsErrors` is enabled globally — all warnings are build errors.
+Test categories:
+- `ScheduleVersioningTests` — activate/edit/delete with historical preservation
+- `NoLunchLeaveTests` — morning/afternoon split without lunch, hourly validation
+- `DraftIsolationTests` — deep clone isolation, cancel discard, atomic commit
+- `MigrationAndNormalizationTests` — ProfileVersioning normalization, history backward compat
+- `RolloverAndBackfillTests` — midnight rollover, multi-day gap, clock rollback
+- `WorkdayProgressTests` — PlannedWorkdays stability with leave/PTO
+- `RealFlowTests` — end-to-end chains (settings → calendar → widget → restart)
+- `PersistenceTests` — atomic writes, v1→v3 migration, corrupt recovery
+- `ViewModelTests` — ConfigurationStore/ConfigurationDraft propagation
 
 ## CI / Release
 
-`.github/workflows/ci.yml` has two jobs (Windows runner, .NET 10). `build` runs on every push and just compiles. `release` runs `needs: build` with a job-level `if: startsWith(github.ref, 'refs/tags/v')` — only on a `v*` tag push does it publish both a portable (`--no-self-contained`) and a self-contained `win-x64` build, zip each (`PayBeat-<version>-portable-runtime-required-win-x64.zip`, `PayBeat-<version>-portable-standalone-win-x64.zip`), compile `installer/PayBeat.iss` with Inno Setup (installed via Chocolatey) into `PayBeat-<version>-setup-win-x64.exe`, and create a GitHub Release via `softprops/action-gh-release` with all three files. Versioning is derived from git tags via MinVer (e.g. `v1.2.0`); locally, ensure the tag is reachable from HEAD for a meaningful version. The installer script itself takes its version from `/DAppVersion=<version>` (tag name with the `v` prefix stripped), not MinVer.
+`.github/workflows/ci.yml` has two jobs:
+- `validate` — runs on every push and PR to main; builds and runs all tests.
+- `release` — depends on `validate`; runs only on `v*` tag push; publishes portable and self-contained builds, compiles the Inno Setup installer, and creates a GitHub Release.
 
-`installer/PayBeat.iss` packages the self-contained publish output into a per-user installer (`PrivilegesRequired=lowest`, installs under `{localappdata}\Programs\PayBeat`, no UAC prompt). It refuses to install/uninstall while the app is running (checks the `PayBeat_SingleInstance` mutex from `App.xaml.cs`) and cleans up `%APPDATA%\PayBeat` and the HKCU `Run` startup entry on uninstall. Build the publish output first (`dotnet publish ... --self-contained -o publish-selfcontained/`), then compile with `ISCC.exe installer\PayBeat.iss /DAppVersion=<version>`.
+User settings are persisted to `%APPDATA%\今日薪动\settings.json` (migrated from legacy `%APPDATA%\PayBeat`). The installer/uninstaller preserves both directories — salary history is user data and must not be deleted on uninstall.
 
-User settings are persisted to `%APPDATA%\PayBeat\settings.json`.
+## Holiday Coverage
 
-There is no test project in this repository yet.
+The built-in official holiday dataset (`Resources/holidays.json`) currently covers **2025–2026**. `HolidayCalendar` exposes `CoveredYears`, `CoversYear(year)`, `MinCoveredYear`, and `MaxCoveredYear` for programmatic coverage detection. When a user views an uncovered year (e.g. 2027), the calendar page displays a non-blocking warning: the year falls back to the work week policy and manual overrides. No future official holiday data is ever fabricated.

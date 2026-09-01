@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using PayBeat.App.Domain;
 using PayBeat.App.Models;
 using PayBeat.App.Services;
@@ -7,58 +8,72 @@ using PayBeat.App.ViewModels;
 namespace PayBeat.App.Views;
 
 /// <summary>
-/// Manage work-schedule profiles: create, edit, delete (except the schedule currently in effect),
-/// and set effective dates. Editing a past-effective schedule creates a new version effective
-/// today instead of rewriting it, keeping month history intact.
+/// Manage work-schedule profiles. Operates on the shared <see cref="ConfigurationDraft"/>
+/// so changes are reflected in the parent SettingsWindow without writing to disk.
 /// </summary>
 public partial class ScheduleManagerWindow
 {
-    private readonly SettingsService _settingsService;
+    private readonly ConfigurationStore _store;
+    private readonly ConfigurationDraft _draft;
     private readonly MainViewModel _mainVm;
     private PayConfiguration _config = null!;
     private SalarySettings _settings = null!;
     private WorkScheduleProfile? _selected;
     private bool _isNewEntry;
 
-    /// <summary>Builds the manager over the given settings service.</summary>
-    public ScheduleManagerWindow(SettingsService settingsService, MainViewModel mainVm)
+    // In-window new-schedule draft: appears as a second list card immediately ("unsaved"),
+    // joins the ConfigurationDraft when the user presses the row's save ("pending"), and is
+    // only persisted to the store by the main settings save.
+    private WorkScheduleProfile? _pendingNew;
+    private readonly HashSet<string> _pendingSavedIds = new(StringComparer.Ordinal);
+
+    public ScheduleManagerWindow(ConfigurationStore store, ConfigurationDraft draft, MainViewModel mainVm)
     {
         InitializeComponent();
-        _settingsService = settingsService;
+        _store = store;
+        _draft = draft;
         _mainVm = mainVm;
         Owner = Application.Current.Windows.OfType<SettingsWindow>().FirstOrDefault();
         Reload();
     }
 
+    // Row presentation lives in PayBeat.App.ViewModels.ScheduleRowVm so the list binds to a
+    // real template payload instead of Object.ToString().
+
     private void Reload()
     {
-        _settings = _settingsService.Load();
-        _config = new PayDataService(_settingsService, new HistoryService()).BuildConfiguration(_settings);
+        _settings = _draft.Base;
+        _config = _draft.BuildPreviewConfiguration(_store.PayData);
         var activeId = _config.ResolveSchedule(DateOnly.FromDateTime(DateTime.Now)).Id;
 
-        ScheduleList.ItemsSource = _settings.ScheduleProfiles
-            .OrderByDescending(s => s.EffectiveFrom)
-            .Select(s => new ScheduleRow(s, s.Id == activeId))
-            .ToList();
-    }
+        ScheduleList.ItemsSource = ScheduleListPresenter.BuildRows(
+            _settings.ScheduleProfiles.OrderByDescending(s => s.EffectiveFrom).ToList(),
+            activeId,
+            _pendingNew,
+            _pendingSavedIds);
 
-    private record ScheduleRow(WorkScheduleProfile Schedule, bool IsActive)
-    {
-        public string Display => $"{(string.IsNullOrWhiteSpace(Schedule.Name) ? LocalizationService.Get("Salary.DefaultScheduleName") : Schedule.Name)}"
-                                 + $"  ({Schedule.EffectiveFrom:yyyy-MM-dd}){(IsActive ? " · " + LocalizationService.Get("Schedule.Active") : "")}";
-    }
-
-    private void OnSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
-    {
-        if (ScheduleList.SelectedItem is ScheduleRow row)
+        if (_selected is not null)
         {
-            _selected = row.Schedule;
-            _isNewEntry = false;
-            LoadForm(row.Schedule);
+            var resync = ScheduleList.ItemsSource.OfType<ScheduleRowVm>().FirstOrDefault(r => r.Schedule.Id == _selected.Id);
+            if (resync is not null) ScheduleList.SelectedItem = resync;
         }
+        else if (ScheduleList.SelectedIndex < 0 && ScheduleList.Items.Count > 0)
+        {
+            ScheduleList.SelectedIndex = 0;
+        }
+
+        if (ScheduleList.SelectedIndex < 0 && ScheduleList.Items.Count > 0) ScheduleList.SelectedIndex = 0;
     }
 
-    private void LoadForm(WorkScheduleProfile schedule)
+    private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ScheduleList.SelectedItem is not ScheduleRowVm row) return;
+        _selected = row.Schedule;
+        _isNewEntry = row.Schedule.Id == _pendingNew?.Id;
+        LoadForm(row.Schedule, row.IsActive, isPending: _isNewEntry);
+    }
+
+    private void LoadForm(WorkScheduleProfile schedule, bool isActive, bool isPending = false)
     {
         NameBox.Text = string.IsNullOrWhiteSpace(schedule.Name) ? LocalizationService.Get("Salary.DefaultScheduleName") : schedule.Name;
         StartTime.SelectedTime = schedule.WorkStart;
@@ -67,64 +82,73 @@ public partial class ScheduleManagerWindow
         LunchStartTime.SelectedTime = schedule.LunchBreakStart;
         LunchEndTime.SelectedTime = schedule.LunchBreakEnd;
         EffectiveFromBox.Text = schedule.EffectiveFrom.ToString("yyyy-MM-dd");
-        DeleteButton.IsEnabled = schedule.Id != _config.ResolveSchedule(DateOnly.FromDateTime(DateTime.Now)).Id;
-        FormError.Text = DeleteButton.IsEnabled ? "" : LocalizationService.Get("Schedule.DeleteDisabled");
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var isHistorical = schedule.EffectiveFrom < today;
+        // Delete is blocked for historical versions (immutable) and active/pending schedules.
+        DeleteButton.IsEnabled = !isActive && !isPending && !isHistorical;
+        // Activate is allowed on historical versions ("re-enable from today") but blocked
+        // for the currently active schedule and unsaved pending entries.
+        ActivateButton.IsEnabled = !isActive && !isPending;
+        CurrentLabel.Visibility = isActive ? Visibility.Visible : Visibility.Collapsed;
+        FormError.Text = "";
     }
 
     private void ClearForm()
     {
+        var active = _config.ResolveSchedule(DateOnly.FromDateTime(DateTime.Now));
         _selected = null;
         _isNewEntry = true;
         NameBox.Text = "";
-        StartTime.SelectedTime = new TimeOnly(9, 0);
-        EndTime.SelectedTime = new TimeOnly(18, 0);
-        LunchCheck.IsChecked = false;
-        LunchStartTime.SelectedTime = new TimeOnly(12, 0);
-        LunchEndTime.SelectedTime = new TimeOnly(13, 0);
+        StartTime.SelectedTime = active.WorkStart;
+        EndTime.SelectedTime = active.WorkEnd;
+        LunchCheck.IsChecked = active.LunchBreakEnabled;
+        LunchStartTime.SelectedTime = active.LunchBreakStart;
+        LunchEndTime.SelectedTime = active.LunchBreakEnd;
         EffectiveFromBox.Text = DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM-dd");
         DeleteButton.IsEnabled = false;
+        ActivateButton.IsEnabled = false;
+        CurrentLabel.Visibility = Visibility.Collapsed;
         FormError.Text = "";
         NameBox.Focus();
     }
 
-    private void OnNew(object sender, RoutedEventArgs e) => ClearForm();
+    private void OnNew(object sender, RoutedEventArgs e)
+    {
+        // Create the pending card FIRST so the user sees a second row appear immediately,
+        // then select it so the form edits the new schedule — not the active one.
+        var active = _config.ResolveSchedule(DateOnly.FromDateTime(DateTime.Now));
+        _pendingNew = ScheduleListPresenter.CreatePending(active);
+        _selected = _pendingNew;
+        _isNewEntry = true;
+        Reload();
+        LoadForm(_pendingNew, isActive: false, isPending: true);
+        NameBox.Focus();
+    }
 
     private void OnSaveSchedule(object sender, RoutedEventArgs e)
     {
         FormError.Text = "";
-
         var name = NameBox.Text.Trim();
-        if (name.Length == 0)
-        {
-            FormError.Text = LocalizationService.Get("Error.ScheduleNameRequired");
-            return;
-        }
-        if (!DateOnly.TryParseExact(EffectiveFromBox.Text, "yyyy-MM-dd", out var effectiveFrom))
-        {
-            FormError.Text = LocalizationService.Get("Error.ScheduleOverlap");
-            return;
-        }
+        if (name.Length == 0) { FormError.Text = LocalizationService.Get("Error.ScheduleNameRequired"); return; }
+        if (!DateOnly.TryParseExact(EffectiveFromBox.Text, "yyyy-MM-dd", out var effectiveFrom)) { FormError.Text = "⚠ 日期格式无效，例如 2026-10-01"; return; }
 
         var start = StartTime.SelectedTime;
         var end = EndTime.SelectedTime;
         var lunchOn = LunchCheck.IsChecked == true;
         var lunchStart = LunchStartTime.SelectedTime;
         var lunchEnd = LunchEndTime.SelectedTime;
-        if (start >= end
-            || (lunchOn && (lunchStart >= lunchEnd || lunchStart < start || lunchEnd > end)))
-        {
-            FormError.Text = LocalizationService.Get("Error.LunchBreakInvalid");
-            return;
-        }
+
+        if (start >= end) { FormError.Text = "⚠ 下班时间必须晚于上班时间"; return; }
+        if (lunchOn && (lunchStart >= lunchEnd || lunchStart < start || lunchEnd > end)) { FormError.Text = "⚠ 午休时间必须在工作时间内，且结束时间须晚于开始时间"; return; }
 
         var today = DateOnly.FromDateTime(DateTime.Now);
         var schedules = new List<WorkScheduleProfile>(_settings.ScheduleProfiles);
-        var active = _config.ResolveSchedule(today);
 
         if (_isNewEntry || _selected is null)
         {
-            schedules.Add(new WorkScheduleProfile
+            var entry = new WorkScheduleProfile
             {
+                Id = _selected?.Id ?? Guid.NewGuid().ToString("N"),
                 Name = name,
                 WorkStart = start,
                 WorkEnd = end,
@@ -132,87 +156,84 @@ public partial class ScheduleManagerWindow
                 LunchBreakStart = lunchStart,
                 LunchBreakEnd = lunchEnd,
                 EffectiveFrom = effectiveFrom,
-            });
+            };
+            schedules = ProfileVersioning.Upsert(schedules, entry, s => s.EffectiveFrom, (a, b) => a.Id == b.Id);
         }
         else
         {
-            var index = schedules.FindIndex(s => s.Id == _selected.Id);
-            if (index < 0)
+            var existing = schedules.FirstOrDefault(s => s.Id == _selected.Id);
+            if (existing is null) return;
+            var edited = new WorkScheduleProfile
             {
-                return;
-            }
-
-            var edited = schedules[index];
-            var sameId = edited.Id;
-            if (edited.EffectiveFrom < today)
-            {
-                // Never rewrite history: create a new version effective from the requested date.
-                sameId = Guid.NewGuid().ToString("N");
-                schedules.Add(new WorkScheduleProfile
-                {
-                    Id = sameId,
-                    Name = name,
-                    WorkStart = start,
-                    WorkEnd = end,
-                    LunchBreakEnabled = lunchOn,
-                    LunchBreakStart = lunchStart,
-                    LunchBreakEnd = lunchEnd,
-                    EffectiveFrom = effectiveFrom,
-                });
-            }
-            else
-            {
-                schedules[index] = edited with
-                {
-                    Name = name,
-                    WorkStart = start,
-                    WorkEnd = end,
-                    LunchBreakEnabled = lunchOn,
-                    LunchBreakStart = lunchStart,
-                    LunchBreakEnd = lunchEnd,
-                    EffectiveFrom = effectiveFrom,
-                };
-            }
+                Id = existing.Id,
+                Name = name,
+                WorkStart = start,
+                WorkEnd = end,
+                LunchBreakEnabled = lunchOn,
+                LunchBreakStart = lunchStart,
+                LunchBreakEnd = lunchEnd,
+                EffectiveFrom = effectiveFrom,
+            };
+            schedules = ScheduleVersioning.Edit(schedules, edited, today);
         }
 
-        _settingsService.Save(_settings with { ScheduleProfiles = schedules });
-        _mainVm.ReloadSettings();
+        _draft.ScheduleProfiles = schedules;
+        if (_selected is null)
+        {
+            Reload();
+            return;
+        }
+        var savedId = _selected.Id;
+        if (_pendingNew is not null && savedId == _pendingNew.Id)
+        {
+            // The pending card graduated into the draft: it now shows "pending" until the
+            // main settings save commits it.
+            _pendingSavedIds.Add(savedId);
+            _pendingNew = null;
+        }
+
+        _selected = schedules.FirstOrDefault(s => s.Id == savedId) ?? schedules.OrderByDescending(s => s.EffectiveFrom).First();
+        _isNewEntry = false;
+        Reload();
+    }
+
+    private void OnActivate(object sender, RoutedEventArgs e)
+    {
+        if (_selected is null) return;
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var result = ScheduleVersioning.Activate(
+            _settings.ScheduleProfiles, _selected.Id, today);
+        if (result is null) return;
+        _draft.ScheduleProfiles = result;
+        _selected = result.FirstOrDefault(s => s.Id == _selected.Id)
+                    ?? result.OrderByDescending(s => s.EffectiveFrom).First();
+        _isNewEntry = false;
         Reload();
     }
 
     private void OnDelete(object sender, RoutedEventArgs e)
     {
-        if (_selected is null)
+        if (_selected is null) return;
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var (success, schedules) = ScheduleVersioning.Delete(
+            _settings.ScheduleProfiles, _selected.Id, today, _config);
+        if (!success)
         {
+            var activeId = _config.ResolveSchedule(today).Id;
+            if (_selected.Id == activeId)
+                FormError.Text = "⚠ 当前使用中的方案不能删除";
+            else if (_selected.EffectiveFrom < today)
+                FormError.Text = "⚠ 历史版本不能删除";
             return;
         }
-
-        var activeId = _config.ResolveSchedule(DateOnly.FromDateTime(DateTime.Now)).Id;
-        if (_selected.Id == activeId)
-        {
-            FormError.Text = LocalizationService.Get("Schedule.DeleteDisabled");
-            return;
-        }
-
-        var schedules = _settings.ScheduleProfiles.Where(s => s.Id != _selected.Id).ToList();
-        _settingsService.Save(_settings with { ScheduleProfiles = schedules });
-        _mainVm.ReloadSettings();
+        _draft.ScheduleProfiles = schedules;
+        _pendingSavedIds.Remove(_selected.Id);
+        _selected = null;
         Reload();
         ClearForm();
     }
 
     private void OnClose(object sender, RoutedEventArgs e) => Close();
-
-    private void OnLunchChanged(object sender, RoutedEventArgs e)
-    {
-        // Only used to refresh enable-state through IsEnabled binding.
-    }
-
-    private void Window_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-    {
-        if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed)
-        {
-            DragMove();
-        }
-    }
+    private void OnLunchChanged(object sender, RoutedEventArgs e) { }
+    private void Window_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e) { if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed) DragMove(); }
 }

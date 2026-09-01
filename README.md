@@ -1,11 +1,13 @@
 # PayBeat
 
-[![CI / Release](https://github.com/coldhighsun/PayBeat/actions/workflows/ci.yml/badge.svg)](https://github.com/coldhighsun/PayBeat/actions/workflows/ci.yml)
-[![Latest Release](https://img.shields.io/github/v/release/coldhighsun/PayBeat)](https://github.com/coldhighsun/PayBeat/releases/latest)
-[![GitHub All Releases](https://img.shields.io/github/downloads/coldhighsun/PayBeat/total)](https://github.com/coldhighsun/PayBeat/releases)
+[![CI / Release](https://github.com/tztyty66/PayBeat/actions/workflows/ci.yml/badge.svg)](https://github.com/tztyty66/PayBeat/actions/workflows/ci.yml)
+[![Latest Release](https://img.shields.io/github/v/release/tztyty66/PayBeat)](https://github.com/tztyty66/PayBeat/releases/latest)
+[![GitHub All Releases](https://img.shields.io/github/downloads/tztyty66/PayBeat/total)](https://github.com/tztyty66/PayBeat/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Real-time salary progress widget for Windows
+
+This project is a fork of [coldhighsun/PayBeat](https://github.com/coldhighsun/PayBeat), with additional features and customizations.
 
 ---
 
@@ -42,7 +44,7 @@ PayBeat is a borderless, always-on-top Windows widget that shows your real-time 
 
 ## Download
 
-Grab the latest release from the [Releases page](https://github.com/coldhighsun/PayBeat/releases/latest). Three `win-x64` packages are published per version:
+Grab the latest release from the [Releases page](https://github.com/tztyty66/PayBeat/releases/latest). Three `win-x64` packages are published per version:
 
 - `PayBeat-<version>-portable-runtime-required-win-x64.zip` — smaller, requires the .NET 10 Desktop Runtime
 - `PayBeat-<version>-portable-standalone-win-x64.zip` — larger, runs standalone with no prerequisites
@@ -106,8 +108,10 @@ MIT
 
 ## 简介
 
-PayBeat 是一款 Windows 桌面悬浮组件，以秒为单位实时显示当天已挣到的工资。  
+PayBeat 是一款 Windows 桌面悬浮组件，以秒为单位实时显示当天已挣到的工资。
 窗口无边框、始终置顶，不占用任务栏，适合放在屏幕角落随时瞥一眼。
+
+本项目基于 [coldhighsun/PayBeat](https://github.com/coldhighsun/PayBeat) 进行二次开发。
 
 ## 功能
 
@@ -138,7 +142,7 @@ PayBeat 是一款 Windows 桌面悬浮组件，以秒为单位实时显示当天
 
 ## 下载
 
-前往 [Releases 页面](https://github.com/coldhighsun/PayBeat/releases/latest) 下载最新版本。每个版本会发布三个 `win-x64` 安装包：
+前往 [Releases 页面](https://github.com/tztyty66/PayBeat/releases/latest) 下载最新版本。每个版本会发布三个 `win-x64` 安装包：
 
 - `PayBeat-<version>-portable-runtime-required-win-x64.zip` — 体积较小，需预装 .NET 10 Desktop Runtime
 - `PayBeat-<version>-portable-standalone-win-x64.zip` — 体积较大，内置运行时，无需任何前置依赖

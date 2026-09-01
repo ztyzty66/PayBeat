@@ -4,8 +4,8 @@
         xmlns:controls="clr-namespace:PayBeat.App.Views.Controls"
         xmlns:views="clr-namespace:PayBeat.App.Views"
         Title="{DynamicResource Settings.WindowTitle}"
-        Width="660"
-        Height="640"
+        Width="680"
+        Height="700"
         WindowStyle="None"
         AllowsTransparency="True"
         ResizeMode="NoResize"
@@ -35,7 +35,7 @@
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock x:Name="Icon"
                                            Text="{TemplateBinding Tag}"
-                                           FontFamily="Segoe MDL2 Assets"
+                                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Symbol"
                                            FontSize="14"
                                            Foreground="{DynamicResource MutedBrush}"
                                            VerticalAlignment="Center"/>
@@ -62,18 +62,11 @@
             </Setter>
         </Style>
 
-        <!-- Section header used to group related settings -->
-        <Style x:Key="SettingsSectionHeader" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,4,0,10" />
-        </Style>
-
-        <!-- Sub label -->
+        <!-- Field label inside a card -->
         <Style x:Key="FieldLabel" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource SubtextBrush}" />
             <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="0,0,0,6" />
         </Style>
 
         <!-- Segmented button style (mode / week presets) -->
@@ -173,7 +166,7 @@
             BorderBrush="{DynamicResource OverlayBrush}"
             BorderThickness="1">
         <Border.Effect>
-            <DropShadowEffect Color="#000000" Opacity="0.5" BlurRadius="26" ShadowDepth="0" />
+            <DropShadowEffect Color="#000000" Opacity="0.4" BlurRadius="24" ShadowDepth="0" />
         </Border.Effect>
 
         <DockPanel Margin="24,20" LastChildFill="True">
@@ -198,16 +191,13 @@
             <StackPanel DockPanel.Dock="Bottom"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
-                    Margin="0,16,0,0">
+                    Margin="0,14,0,0">
                 <Button Content="{DynamicResource Settings.Cancel}"
                     Command="{Binding CancelCommand}"
-                    Margin="0,0,10,0"
-                    Padding="22,9"
-                    Background="{DynamicResource SurfaceBrush}"
-                    Foreground="{DynamicResource TextBrush}" />
+                    Style="{StaticResource SecondaryButton}"
+                    Margin="0,0,10,0" />
                 <Button Content="{DynamicResource Settings.Save}"
                     Command="{Binding SaveCommand}"
-                    Padding="22,9"
                     Background="{DynamicResource GreenBrush}"
                     Foreground="{DynamicResource BaseBrush}"
                     FontWeight="SemiBold" />
@@ -220,128 +210,167 @@
 
                 <!-- ── Salary ── -->
                 <TabItem Header="{DynamicResource Settings.Tab.Salary}" Tag="&#xE7E9;" Style="{StaticResource NavTabItem}">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8,0,0,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8,4,0,4">
                         <StackPanel>
 
-                            <TextBlock Text="{DynamicResource Settings.Section.Basic}" Style="{StaticResource SettingsSectionHeader}" />
+                            <!-- Card A: salary -->
+                            <Border Style="{StaticResource GroupCard}">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource Settings.Card.Pay}" Style="{StaticResource CardTitle}" />
+                                    <TextBlock Text="{DynamicResource Settings.Mode}" Style="{StaticResource FieldLabel}"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <RadioButton Content="{DynamicResource Settings.Mode.Monthly}" Style="{StaticResource SegmentButton}"
+                                                     IsChecked="{Binding IsMonthlyMode, Mode=TwoWay}"/>
+                                        <RadioButton Content="{DynamicResource Settings.Mode.Daily}" Style="{StaticResource SegmentButton}"
+                                                     IsChecked="{Binding IsDailyMode, Mode=TwoWay}"/>
+                                    </StackPanel>
 
-                            <!-- Salary mode -->
-                            <TextBlock Text="{DynamicResource Settings.Mode}" Style="{StaticResource FieldLabel}" Margin="0,0,0,6"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                                <RadioButton Content="{DynamicResource Settings.Mode.Monthly}" Style="{StaticResource SegmentButton}"
-                                             IsChecked="{Binding IsMonthlyMode, Mode=TwoWay}"/>
-                                <RadioButton Content="{DynamicResource Settings.Mode.Daily}" Style="{StaticResource SegmentButton}"
-                                             IsChecked="{Binding IsDailyMode, Mode=TwoWay}"/>
-                            </StackPanel>
+                                    <TextBlock Text="{DynamicResource Settings.Amount}" Style="{StaticResource FieldLabel}"/>
+                                    <Grid MaxWidth="280" HorizontalAlignment="Left">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="56" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.Column="0"
+                                             Text="¥"
+                                             IsReadOnly="True"
+                                             Background="{DynamicResource SurfaceBrush}"
+                                             Foreground="{DynamicResource MutedBrush}"
+                                             BorderBrush="{DynamicResource OverlayBrush}"
+                                             BorderThickness="1"
+                                             Padding="10,8" />
+                                        <TextBox Grid.Column="2"
+                                             Style="{StaticResource ValidatedTextBox}"
+                                             Text="{Binding AmountText, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                                             TextAlignment="Right"
+                                             Background="{DynamicResource SurfaceBrush}"
+                                             Foreground="{DynamicResource TextBrush}"
+                                             BorderBrush="{DynamicResource OverlayBrush}"
+                                             BorderThickness="1"
+                                             Padding="10,8"
+                                             MaxLength="11"
+                                             PreviewTextInput="Salary_PreviewTextInput"
+                                             DataObject.Pasting="Salary_Pasting" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
 
-                            <!-- Amount -->
-                            <TextBlock Text="{DynamicResource Settings.Amount}" Style="{StaticResource FieldLabel}" Margin="0,0,0,6"/>
-                            <Grid Margin="0,0,0,16" MaxWidth="280" HorizontalAlignment="Left">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="56" />
-                                    <ColumnDefinition Width="8" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBox Grid.Column="0"
-                                     Text="¥"
-                                     IsReadOnly="True"
-                                     Background="{DynamicResource SurfaceBrush}"
-                                     Foreground="{DynamicResource MutedBrush}"
-                                     BorderBrush="{DynamicResource OverlayBrush}"
-                                     BorderThickness="1"
-                                     Padding="10,8" />
-                                <TextBox Grid.Column="2"
-                                     Style="{StaticResource ValidatedTextBox}"
-                                     Text="{Binding AmountText, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
-                                     TextAlignment="Right"
-                                     Background="{DynamicResource SurfaceBrush}"
-                                     Foreground="{DynamicResource TextBrush}"
-                                     BorderBrush="{DynamicResource OverlayBrush}"
-                                     BorderThickness="1"
-                                     Padding="10,8"
-                                     MaxLength="11"
-                                     PreviewTextInput="Salary_PreviewTextInput"
-                                     DataObject.Pasting="Salary_Pasting" />
-                            </Grid>
+                            <!-- Card B: work policy -->
+                            <Border Style="{StaticResource GroupCard}">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource Settings.Card.Work}" Style="{StaticResource CardTitle}" />
+                                    <TextBlock Text="{DynamicResource Settings.WeekPolicy}" Style="{StaticResource FieldLabel}"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <RadioButton Content="{DynamicResource Settings.Week.Double}" Style="{StaticResource SegmentButton}"
+                                                     IsChecked="{Binding IsDoubleRest, Mode=TwoWay}"/>
+                                        <RadioButton Content="{DynamicResource Settings.Week.Single}" Style="{StaticResource SegmentButton}"
+                                                     IsChecked="{Binding IsSingleRest, Mode=TwoWay}"/>
+                                        <RadioButton Content="{DynamicResource Settings.Week.Custom}" Style="{StaticResource SegmentButton}"
+                                                     IsChecked="{Binding IsCustomWeek, Mode=TwoWay}"/>
+                                    </StackPanel>
 
-                            <!-- Work week -->
-                            <TextBlock Text="{DynamicResource Settings.WeekPolicy}" Style="{StaticResource FieldLabel}" Margin="0,0,0,6"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                <RadioButton Content="{DynamicResource Settings.Week.Double}" Style="{StaticResource SegmentButton}"
-                                             IsChecked="{Binding IsDoubleRest, Mode=TwoWay}"/>
-                                <RadioButton Content="{DynamicResource Settings.Week.Single}" Style="{StaticResource SegmentButton}"
-                                             IsChecked="{Binding IsSingleRest, Mode=TwoWay}"/>
-                                <RadioButton Content="{DynamicResource Settings.Week.Custom}" Style="{StaticResource SegmentButton}"
-                                             IsChecked="{Binding IsCustomWeek, Mode=TwoWay}"/>
-                            </StackPanel>
+                                    <TextBlock Text="{DynamicResource Settings.RestDays}" Style="{StaticResource FieldLabel}"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <ToggleButton Content="{DynamicResource Day.Mon}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkMonday, Mode=TwoWay}"/>
+                                        <ToggleButton Content="{DynamicResource Day.Tue}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkTuesday, Mode=TwoWay}"/>
+                                        <ToggleButton Content="{DynamicResource Day.Wed}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkWednesday, Mode=TwoWay}"/>
+                                        <ToggleButton Content="{DynamicResource Day.Thu}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkThursday, Mode=TwoWay}"/>
+                                        <ToggleButton Content="{DynamicResource Day.Fri}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkFriday, Mode=TwoWay}"/>
+                                        <ToggleButton Content="{DynamicResource Day.Sat}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkSaturday, Mode=TwoWay}"/>
+                                        <ToggleButton Content="{DynamicResource Day.Sun}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkSunday, Mode=TwoWay}"/>
+                                    </StackPanel>
 
-                            <!-- Working-day chips -->
-                            <TextBlock Text="{DynamicResource Settings.RestDays}" Style="{StaticResource FieldLabel}" Margin="0,0,0,6"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                                <ToggleButton Content="{DynamicResource Day.Mon}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkMonday, Mode=TwoWay}"/>
-                                <ToggleButton Content="{DynamicResource Day.Tue}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkTuesday, Mode=TwoWay}"/>
-                                <ToggleButton Content="{DynamicResource Day.Wed}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkWednesday, Mode=TwoWay}"/>
-                                <ToggleButton Content="{DynamicResource Day.Thu}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkThursday, Mode=TwoWay}"/>
-                                <ToggleButton Content="{DynamicResource Day.Fri}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkFriday, Mode=TwoWay}"/>
-                                <ToggleButton Content="{DynamicResource Day.Sat}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkSaturday, Mode=TwoWay}"/>
-                                <ToggleButton Content="{DynamicResource Day.Sun}" Style="{StaticResource DayChip}" IsChecked="{Binding WorkSunday, Mode=TwoWay}"/>
-                            </StackPanel>
+                                    <!-- Effective date: applies to salary amount + work policy -->
+                                    <TextBlock Text="{DynamicResource Settings.Effective.Title}" Style="{StaticResource FieldLabel}" Margin="0,14,0,6"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Content="{DynamicResource Settings.Effective.FirstOfMonth}" Style="{StaticResource SegmentButton}"
+                                                     IsChecked="{Binding IsEffectiveFirstOfMonth, Mode=TwoWay}"/>
+                                        <RadioButton Content="{DynamicResource Settings.Effective.Today}" Style="{StaticResource SegmentButton}"
+                                                     IsChecked="{Binding IsEffectiveToday, Mode=TwoWay}"/>
+                                        <RadioButton Content="{DynamicResource Settings.Effective.Custom}" Style="{StaticResource SegmentButton}"
+                                                     IsChecked="{Binding IsEffectiveCustom, Mode=TwoWay}"/>
+                                        <TextBox Style="{StaticResource ValidatedTextBox}"
+                                                 Text="{Binding CustomEffectiveDateText, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                                                 Width="110"
+                                                 Padding="8,6" FontSize="12"
+                                                 Background="{DynamicResource SurfaceBrush}"
+                                                 Foreground="{DynamicResource TextBrush}"
+                                                 BorderBrush="{DynamicResource OverlayBrush}" BorderThickness="1"
+                                                 IsEnabled="{Binding IsEffectiveCustom, Mode=OneWay}"/>
+                                    </StackPanel>
+                                    <TextBlock Text="{DynamicResource Settings.Effective.Scope}"
+                                               Foreground="{DynamicResource MutedBrush}" FontSize="11"
+                                               TextWrapping="Wrap" Margin="0,8,0,0"/>
+                                </StackPanel>
+                            </Border>
 
-                            <!-- Schedule -->
-                            <Grid Margin="0,6,0,10">
-                                <TextBlock Text="{DynamicResource Settings.Section.Schedule}" Style="{StaticResource SettingsSectionHeader}"/>
-                                <Button Command="{Binding ManageSchedulesCommand}"
-                                    Content="{DynamicResource Settings.ManageSchedules}"
-                                    HorizontalAlignment="Right"
-                                    Padding="12,5"
-                                    Background="{DynamicResource SurfaceBrush}"
-                                    Foreground="{DynamicResource TextBrush}"
-                                    FontSize="12"/>
-                            </Grid>
+                            <!-- Card C: schedule -->
+                            <Border Style="{StaticResource GroupCard}">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,10">
+                                        <TextBlock Text="{DynamicResource Settings.Card.Schedule}" Style="{StaticResource CardTitle}" Margin="0"/>
+                                        <Button Command="{Binding ManageSchedulesCommand}"
+                                            Content="{DynamicResource Settings.ManageSchedules}"
+                                            Style="{StaticResource SecondaryButton}"
+                                            HorizontalAlignment="Right"
+                                            FontSize="12"/>
+                                    </Grid>
 
-                            <Grid Margin="0,0,0,10">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
+                                    <TextBlock Text="{Binding CurrentScheduleName, Mode=OneWay}"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
                                        Text="{DynamicResource Settings.WorkHours}"
                                        Style="{StaticResource FieldLabel}"
-                                       VerticalAlignment="Center" />
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <controls:TimePickerControl SelectedTime="{Binding WorkStart}" />
-                                    <TextBlock Text="–" Foreground="{DynamicResource MutedBrush}" FontSize="13" VerticalAlignment="Center" Margin="6,0" />
-                                    <controls:TimePickerControl SelectedTime="{Binding WorkEnd}" />
-                                </StackPanel>
-                            </Grid>
+                                       VerticalAlignment="Center" Margin="0"/>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <controls:TimePickerControl SelectedTime="{Binding WorkStart}" />
+                                            <TextBlock Text="–" Foreground="{DynamicResource MutedBrush}" FontSize="13" VerticalAlignment="Center" Margin="6,0" />
+                                            <controls:TimePickerControl SelectedTime="{Binding WorkEnd}" />
+                                        </StackPanel>
+                                    </Grid>
 
-                            <Grid Margin="0,0,0,10">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <CheckBox Grid.Column="0"
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0"
                                       Content="{DynamicResource Settings.LunchBreakEnabled}"
                                       IsChecked="{Binding LunchBreakEnabled}"
                                       Foreground="{DynamicResource TextBrush}"
                                       FontSize="13"
                                       Cursor="Hand"
                                       VerticalAlignment="Center" />
-                                <StackPanel Grid.Column="1"
+                                        <StackPanel Grid.Column="1"
                                         Orientation="Horizontal"
                                         VerticalAlignment="Center"
                                         IsEnabled="{Binding LunchBreakEnabled}">
-                                    <controls:TimePickerControl SelectedTime="{Binding LunchBreakStart}" />
-                                    <TextBlock Text="–" Foreground="{DynamicResource MutedBrush}" FontSize="13" VerticalAlignment="Center" Margin="6,0" />
-                                    <controls:TimePickerControl SelectedTime="{Binding LunchBreakEnd}" />
+                                            <controls:TimePickerControl SelectedTime="{Binding LunchBreakStart}" />
+                                            <TextBlock Text="–" Foreground="{DynamicResource MutedBrush}" FontSize="13" VerticalAlignment="Center" Margin="6,0" />
+                                            <controls:TimePickerControl SelectedTime="{Binding LunchBreakEnd}" />
+                                        </StackPanel>
+                                    </Grid>
                                 </StackPanel>
-                            </Grid>
+                            </Border>
 
-                            <TextBlock Text="{DynamicResource Settings.SaveFromTodayHint}"
-                                   Style="{StaticResource FieldLabel}"
-                                   Foreground="{DynamicResource MutedBrush}"
-                                   TextWrapping="Wrap"
-                                   Margin="0,4,0,0"/>
+                            <!-- Card D: note -->
+                            <Border Style="{StaticResource GroupCard}">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource Settings.Card.Info}" Style="{StaticResource CardTitle}" />
+                                    <TextBlock Text="{DynamicResource Settings.Info.Text}"
+                                   Foreground="{DynamicResource SubtextBrush}"
+                                   FontSize="11.5"
+                                   TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>
@@ -353,141 +382,165 @@
 
                 <!-- ── Display ── -->
                 <TabItem Header="{DynamicResource Settings.Tab.Display}" Tag="&#xE7F4;" Style="{StaticResource NavTabItem}">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8,0,0,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8,4,0,4">
                         <StackPanel>
 
-                            <TextBlock Text="{DynamicResource Settings.DisplayMode}" Style="{StaticResource FieldLabel}" Margin="0,0,0,8"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                                <RadioButton Content="{DynamicResource Settings.Flex}" Style="{StaticResource SegmentButton}"
-                                         IsChecked="{Binding IsFlexMode, Mode=TwoWay}"/>
-                                <RadioButton Content="{DynamicResource Settings.Normal}" Style="{StaticResource SegmentButton}"
-                                         IsChecked="{Binding IsNormalMode, Mode=TwoWay}"/>
-                                <RadioButton Content="{DynamicResource Settings.Mini}" Style="{StaticResource SegmentButton}"
-                                         IsChecked="{Binding IsMiniMode, Mode=TwoWay}"/>
-                                <RadioButton Content="{DynamicResource Settings.None}" Style="{StaticResource SegmentButton}"
-                                         IsChecked="{Binding IsNoneMode, Mode=TwoWay}"/>
-                            </StackPanel>
+                            <!-- Card A: widget -->
+                            <Border Style="{StaticResource GroupCard}">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource Display.Card.Widget}" Style="{StaticResource CardTitle}" />
+                                    <TextBlock Text="{DynamicResource Settings.DisplayMode}" Style="{StaticResource FieldLabel}"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                        <RadioButton Content="{DynamicResource Settings.Flex}" Style="{StaticResource SegmentButton}"
+                                                 IsChecked="{Binding IsFlexMode, Mode=TwoWay}"/>
+                                        <RadioButton Content="{DynamicResource Settings.Normal}" Style="{StaticResource SegmentButton}"
+                                                 IsChecked="{Binding IsNormalMode, Mode=TwoWay}"/>
+                                        <RadioButton Content="{DynamicResource Settings.Mini}" Style="{StaticResource SegmentButton}"
+                                                 IsChecked="{Binding IsMiniMode, Mode=TwoWay}"/>
+                                        <RadioButton Content="{DynamicResource Settings.None}" Style="{StaticResource SegmentButton}"
+                                                 IsChecked="{Binding IsNoneMode, Mode=TwoWay}"/>
+                                    </StackPanel>
 
-                            <Grid Margin="0,0,0,4">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
                                    Text="{DynamicResource Settings.Opacity}"
                                    Style="{StaticResource FieldLabel}"
-                                   VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1"
+                                   VerticalAlignment="Center" Margin="0"/>
+                                        <TextBlock Grid.Column="1"
                                    Text="{Binding Opacity, StringFormat={}{0:P0}}"
                                    Foreground="{DynamicResource GreenBrush}"
                                    FontSize="12"
                                    VerticalAlignment="Center" />
-                            </Grid>
-                            <Slider Minimum="0.1"
-                                Maximum="1.0"
-                                Value="{Binding Opacity}"
-                                TickFrequency="0.05"
-                                IsSnapToTickEnabled="True"
-                                Foreground="{DynamicResource BlueBrush}"
-                                Margin="0,0,0,16" />
+                                    </Grid>
+                                    <Slider Minimum="0.1"
+                                        Maximum="1.0"
+                                        Value="{Binding Opacity}"
+                                        TickFrequency="0.05"
+                                        IsSnapToTickEnabled="True"
+                                        Foreground="{DynamicResource BlueBrush}"
+                                        Margin="0,0,0,14" />
 
-                            <CheckBox Content="{DynamicResource Settings.AlwaysOnTop}"
-                              IsChecked="{Binding AlwaysOnTop}"
-                              Foreground="{DynamicResource TextBrush}"
-                              FontSize="13"
-                              Cursor="Hand"
-                              Margin="0,0,0,16" />
+                                    <CheckBox Content="{DynamicResource Settings.AlwaysOnTop}"
+                                      IsChecked="{Binding AlwaysOnTop}"
+                                      Foreground="{DynamicResource TextBrush}"
+                                      FontSize="13"
+                                      Cursor="Hand" />
+                                </StackPanel>
+                            </Border>
 
-                            <TextBlock Text="{DynamicResource Settings.Theme}" Style="{StaticResource FieldLabel}" Margin="0,0,0,6"/>
-                            <ComboBox ItemsSource="{Binding AvailableThemes}"
-                              SelectedValue="{Binding Theme}"
-                              SelectedValuePath="Code"
-                              MaxWidth="240"
-                              HorizontalAlignment="Left"
-                              Margin="0,0,0,16">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock>
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="{Binding Name}" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Code}" Value="auto">
-                                                            <Setter Property="Text" Value="{DynamicResource Settings.ThemeAuto}" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Code}" Value="light">
-                                                            <Setter Property="Text" Value="{DynamicResource Settings.ThemeLight}" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Code}" Value="dark">
-                                                            <Setter Property="Text" Value="{DynamicResource Settings.ThemeDark}" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
+                            <!-- Card B: appearance -->
+                            <Border Style="{StaticResource GroupCard}">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource Display.Card.Appearance}" Style="{StaticResource CardTitle}" />
+                                    <TextBlock Text="{DynamicResource Settings.Theme}" Style="{StaticResource FieldLabel}"/>
+                                    <ComboBox ItemsSource="{Binding AvailableThemes}"
+                                      SelectedValue="{Binding Theme}"
+                                      SelectedValuePath="Code"
+                                      MaxWidth="240"
+                                      HorizontalAlignment="Left">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="{Binding Name}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Code}" Value="auto">
+                                                                    <Setter Property="Text" Value="{DynamicResource Settings.ThemeAuto}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Code}" Value="light">
+                                                                    <Setter Property="Text" Value="{DynamicResource Settings.ThemeLight}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Code}" Value="dark">
+                                                                    <Setter Property="Text" Value="{DynamicResource Settings.ThemeDark}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Border>
 
-                            <Grid Margin="0,0,0,2">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
+                            <!-- Card C: refresh -->
+                            <Border Style="{StaticResource GroupCard}">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource Display.Card.Refresh}" Style="{StaticResource CardTitle}" />
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
                                    Text="{DynamicResource Settings.RefreshInterval}"
                                    Style="{StaticResource FieldLabel}"
-                                   VerticalAlignment="Center" />
-                                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                    <TextBlock Text="{Binding RefreshInterval}"
+                                   VerticalAlignment="Center" Margin="0"/>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                            <TextBlock Text="{Binding RefreshInterval}"
                                        Foreground="{DynamicResource GreenBrush}"
                                        FontSize="12"
                                        VerticalAlignment="Center" />
-                                    <TextBlock Text="{DynamicResource Settings.Seconds}"
+                                            <TextBlock Text="{DynamicResource Settings.Seconds}"
                                        Foreground="{DynamicResource GreenBrush}"
                                        FontSize="12"
                                        VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <Slider Minimum="1"
+                                        Maximum="60"
+                                        Value="{Binding RefreshInterval}"
+                                        TickFrequency="1"
+                                        IsSnapToTickEnabled="True"
+                                        Foreground="{DynamicResource BlueBrush}"
+                                        Margin="0,0,0,6"/>
+                                    <TextBlock Text="{DynamicResource Display.RefreshHint}"
+                                   Foreground="{DynamicResource MutedBrush}" FontSize="11"
+                                   TextWrapping="Wrap"/>
                                 </StackPanel>
-                            </Grid>
-                            <Slider Minimum="1"
-                                Maximum="60"
-                                Value="{Binding RefreshInterval}"
-                                TickFrequency="1"
-                                IsSnapToTickEnabled="True"
-                                Foreground="{DynamicResource BlueBrush}" />
+                            </Border>
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>
 
                 <!-- ── System ── -->
                 <TabItem Header="{DynamicResource Settings.Tab.System}" Tag="&#xE713;" Style="{StaticResource NavTabItem}">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8,0,0,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="8,4,0,4">
                         <StackPanel>
 
-                            <CheckBox Content="{DynamicResource Settings.RunAtStartup}"
+                            <!-- Card A: startup & reminders -->
+                            <Border Style="{StaticResource GroupCard}">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource System.Card.Startup}" Style="{StaticResource CardTitle}" />
+                                    <CheckBox Content="{DynamicResource Settings.RunAtStartup}"
                               IsChecked="{Binding RunAtStartup}"
                               Foreground="{DynamicResource TextBrush}"
                               FontSize="13"
                               Cursor="Hand"
-                              Margin="0,0,0,14" />
+                              Margin="0,0,0,12" />
 
-                            <CheckBox Content="{DynamicResource Settings.EnableEndOfDayReminder}"
+                                    <CheckBox Content="{DynamicResource Settings.EnableEndOfDayReminder}"
                               IsChecked="{Binding EnableEndOfDayReminder}"
                               Foreground="{DynamicResource TextBrush}"
                               FontSize="13"
                               Cursor="Hand"
                               Margin="0,0,0,8" />
-                            <Grid Margin="0,0,0,14" IsEnabled="{Binding EnableEndOfDayReminder}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="8" />
-                                    <ColumnDefinition Width="80" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
+                                    <Grid Margin="0,0,0,12" IsEnabled="{Binding EnableEndOfDayReminder}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="80" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
                                    Text="{DynamicResource Settings.EndOfDayReminderMinutes}"
                                    Style="{StaticResource FieldLabel}"
-                                   VerticalAlignment="Center" />
-                                <TextBox Grid.Column="2"
+                                   VerticalAlignment="Center" Margin="0"/>
+                                        <TextBox Grid.Column="2"
                                  Style="{StaticResource ValidatedTextBox}"
                                  Text="{Binding EndOfDayReminderMinutesText, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
                                  TextAlignment="Right"
@@ -499,25 +552,25 @@
                                  MaxLength="2"
                                  PreviewTextInput="Integer_PreviewTextInput"
                                  DataObject.Pasting="Integer_Pasting" />
-                            </Grid>
+                                    </Grid>
 
-                            <CheckBox Content="{DynamicResource Settings.EnableMilestoneNotifications}"
+                                    <CheckBox Content="{DynamicResource Settings.EnableMilestoneNotifications}"
                               IsChecked="{Binding EnableMilestoneNotifications}"
                               Foreground="{DynamicResource TextBrush}"
                               FontSize="13"
                               Cursor="Hand"
                               Margin="0,0,0,8" />
-                            <Grid Margin="0,0,0,14" IsEnabled="{Binding EnableMilestoneNotifications}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="8" />
-                                    <ColumnDefinition Width="80" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
+                                    <Grid Margin="0,0,0,2" IsEnabled="{Binding EnableMilestoneNotifications}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="80" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
                                    Text="{DynamicResource Settings.MilestoneAmount}"
                                    Style="{StaticResource FieldLabel}"
-                                   VerticalAlignment="Center" />
-                                <TextBox Grid.Column="2"
+                                   VerticalAlignment="Center" Margin="0"/>
+                                        <TextBox Grid.Column="2"
                                  Style="{StaticResource ValidatedTextBox}"
                                  Text="{Binding MilestoneAmountText, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
                                  TextAlignment="Right"
@@ -529,10 +582,15 @@
                                  MaxLength="11"
                                  PreviewTextInput="Salary_PreviewTextInput"
                                  DataObject.Pasting="Salary_Pasting" />
-                            </Grid>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
 
-                            <TextBlock Text="{DynamicResource Settings.Hotkey}" Style="{StaticResource FieldLabel}" Margin="0,0,0,6"/>
-                            <TextBox x:Name="HotkeyBox"
+                            <!-- Card B: hotkey -->
+                            <Border Style="{StaticResource GroupCard}">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource System.Card.Hotkey}" Style="{StaticResource CardTitle}" />
+                                    <TextBox x:Name="HotkeyBox"
                              Text="{Binding HotkeyDisplayText, Mode=OneWay}"
                              IsReadOnly="True"
                              Background="{DynamicResource SurfaceBrush}"
@@ -546,48 +604,74 @@
                              PreviewKeyDown="HotkeyBox_PreviewKeyDown"
                              GotFocus="HotkeyBox_GotFocus"
                              LostFocus="HotkeyBox_LostFocus" />
-                            <TextBlock Text="{DynamicResource Settings.HotkeyHint}"
+                                    <TextBlock Text="{DynamicResource Settings.HotkeyHint}"
                                Foreground="{DynamicResource MutedBrush}"
                                FontSize="11"
-                               Margin="0,4,0,14" />
+                               Margin="0,6,0,6" />
+                                    <Border Style="{StaticResource WarningCallout}"
+                                x:Name="HotkeyWarningCallout">
+                                        <TextBlock Text="{Binding HotkeyStatus, Mode=OneWay}"
+                                   Foreground="{DynamicResource RedBrush}"
+                                   FontSize="11.5"
+                                   TextWrapping="Wrap" />
+                                    </Border>
+                                </StackPanel>
+                            </Border>
 
-                            <TextBlock Text="{DynamicResource Settings.Language}" Style="{StaticResource FieldLabel}" Margin="0,0,0,6"/>
-                            <ComboBox ItemsSource="{Binding AvailableLanguages}"
+                            <!-- Card C: language -->
+                            <Border Style="{StaticResource GroupCard}">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource System.Card.Language}" Style="{StaticResource CardTitle}" />
+                                    <ComboBox ItemsSource="{Binding AvailableLanguages}"
                               SelectedValue="{Binding Language}"
                               SelectedValuePath="Code"
                               MaxWidth="240"
-                              HorizontalAlignment="Left"
-                              Margin="0,0,0,18">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock>
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="{Binding Name}" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Code}" Value="auto">
-                                                            <Setter Property="Text" Value="{DynamicResource Settings.LanguageAuto}" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
+                              HorizontalAlignment="Left">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="{Binding Name}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Code}" Value="auto">
+                                                                    <Setter Property="Text" Value="{DynamicResource Settings.LanguageAuto}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Border>
 
-                            <TextBlock Text="{DynamicResource Settings.Section.About}" Style="{StaticResource SettingsSectionHeader}"/>
-                            <TextBlock Text="{DynamicResource Settings.BasedOn}"
+                            <!-- Card D: about -->
+                            <Border Style="{StaticResource GroupCard}">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource System.Card.About}" Style="{StaticResource CardTitle}" />
+                                    <TextBlock Text="今日薪动"
+                                   Foreground="{DynamicResource TextBrush}"
+                                   FontSize="16" FontWeight="Bold" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{DynamicResource About.Tagline}"
+                                   Foreground="{DynamicResource SubtextBrush}"
+                                   FontSize="11.5"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,10"/>
+                                    <TextBlock Text="{DynamicResource Settings.BasedOn}"
                                    Foreground="{DynamicResource MutedBrush}"
                                    FontSize="11"
                                    TextWrapping="Wrap"/>
-                            <TextBlock Margin="0,6,0,0">
-                                <Hyperlink NavigateUri="https://github.com/coldhighsun/PayBeat"
+                                    <TextBlock Margin="0,6,0,0">
+                                        <Hyperlink NavigateUri="https://github.com/coldhighsun/PayBeat"
                                        RequestNavigate="OriginalProject_RequestNavigate"
                                        Foreground="{DynamicResource BlueBrush}">
-                                    <Run Text="{DynamicResource Settings.OpenOriginal}"/>
-                                </Hyperlink>
-                            </TextBlock>
+                                            <Run Text="{DynamicResource Settings.OpenOriginal}"/>
+                                        </Hyperlink>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>

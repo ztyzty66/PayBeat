@@ -9,9 +9,9 @@ using System.Windows.Interop;
 namespace PayBeat.App;
 
 /// <summary>
-/// Application entry point. Owns the top-level object graph: <see cref="Services.SettingsService"/>,
-/// <see cref="ViewModels.MainViewModel"/>, <see cref="Views.MainWindow"/>, and <see cref="Services.HotkeyService"/>.
-/// Saves window position to settings on exit and manages hotkey suspension while the settings window is open.
+/// Application entry point. Owns the top-level object graph: <see cref="ConfigurationStore"/>,
+/// <see cref="SettingsService"/>, <see cref="MainViewModel"/>, <see cref="MainWindow"/>,
+/// and <see cref="HotkeyService"/>.
 /// </summary>
 public partial class App
 {
@@ -20,25 +20,23 @@ public partial class App
     private MainViewModel? _mainVm;
     private MainWindow? _mainWindow;
     private SettingsService? _settingsService;
+    private ConfigurationStore? _store;
     private Mutex? _singleInstanceMutex;
     private SalarySettings? _startupSettings;
     private TrayIconService? _trayIconService;
     private bool _windowsHidden;
 
-    /// <summary>Resumes the global hotkey after it was suspended by the settings window.</summary>
     public void ResumeHotkey() => _hotkeyService?.Resume();
-
-    /// <summary>Suspends the global hotkey while the settings window is capturing key input.</summary>
     public void SuspendHotkey() => _hotkeyService?.Suspend();
 
-    /// <inheritdoc/>
     protected override void OnExit(ExitEventArgs e)
     {
+        // Take an idempotent exit snapshot so history is recorded even if the app
+        // closes before midnight rollover. Duplicate calls are safe (upsert by date).
+        _mainVm?.ExitSnapshot();
+
         if (_mainWindow != null)
         {
-            // The window's HWND is already destroyed by the time OnExit runs (WPF closes windows
-            // before firing Exit), so the current monitor can no longer be resolved here - use the
-            // snapshot MainWindow captured in its Closing handler instead.
             var pos = _mainWindow.LastKnownPosition
                       ?? new WindowPosition(_mainWindow.Left, _mainWindow.Top, ScreenHelper.GetCurrentScreenDeviceName(_mainWindow));
             SaveWindowPosition(pos);
@@ -53,10 +51,20 @@ public partial class App
         base.OnExit(e);
     }
 
-    /// <inheritdoc/>
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        AppLogger.Initialize();
+
+        // Last-resort logging so a crash is never silent (no dialogs — tray app must not block).
+        DispatcherUnhandledException += (_, e) =>
+        {
+            AppLogger.LogError("DispatcherUnhandledException", e.Exception);
+            e.Handled = true;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            AppLogger.LogError("AppDomain.UnhandledException", e.ExceptionObject as Exception ?? new Exception(e.ExceptionObject.ToString()));
 
         var settings = LoadStartupSettings();
 
@@ -79,18 +87,14 @@ public partial class App
 
         _trayIconService = new TrayIconService(_mainVm!, ActivateMainWindow);
 
-        // First run: guide the user through the initial setup before showing numbers.
         if (!settings.SetupCompleted)
         {
-            var firstRun = new FirstRunWindow(_settingsService!)
-            {
-                Owner = _mainWindow,
-            };
+            var firstRun = new FirstRunWindow(_store!);
+            ViewModels.MainViewModel.ApplyTopmostIfNeeded(firstRun);
             firstRun.Show();
         }
     }
 
-    // Run restore after first render because clamping depends on measured window size.
     private static void ApplyStartupPlacement(MainWindow mainWindow, SalarySettings settings)
     {
         if (settings.DisplayMode == DisplayMode.Flex)
@@ -101,10 +105,7 @@ public partial class App
         }
 
         var placement = ResolveSavedPlacement(mainWindow, settings, settings.DisplayMode);
-        if (placement == null)
-        {
-            return;
-        }
+        if (placement == null) return;
 
         mainWindow.Left = placement.Value.Left;
         mainWindow.Top = placement.Value.Top;
@@ -112,57 +113,30 @@ public partial class App
     }
 
     private static WindowPosition? GetSavedPosition(SalarySettings settings, DisplayMode mode) =>
-                mode switch
-                {
-                    DisplayMode.Normal => settings.NormalPosition,
-                    DisplayMode.Mini => settings.MiniPosition,
-                    DisplayMode.None => null,
-                    DisplayMode.Flex => null,
-                    _ => null
-                };
+        mode switch
+        {
+            DisplayMode.Normal => settings.NormalPosition,
+            DisplayMode.Mini => settings.MiniPosition,
+            _ => null
+        };
 
-    /// <summary>
-    /// Restore Flex by preferred monitor name, falling back to nearest available monitor.
-    /// </summary>
-    /// <param name="mainWindow">The main window.</param>
-    /// <param name="settings">The salary settings.</param>
-    /// <returns>The bounds for the Flex display mode, or null if not available.</returns>
     private static Rect? ResolveFlexBounds(MainWindow mainWindow, SalarySettings settings)
     {
-        if (settings.FlexPosition == null)
-        {
-            return null;
-        }
-
+        if (settings.FlexPosition == null) return null;
         return ScreenHelper.FindScreenBoundsForRestore(0, 0, settings.FlexPosition.ScreenDeviceName, mainWindow);
     }
 
-    /// <summary>
-    /// Resolve saved mode-specific coordinates and target bounds for clamped restore.
-    /// </summary>
-    /// <param name="mainWindow">The main window.</param>
-    /// <param name="settings">The salary settings.</param>
-    /// <param name="mode">The display mode.</param>
-    /// <returns>A tuple containing the left, top, and bounds, or null if not available.</returns>
     private static (double Left, double Top, Rect Bounds)? ResolveSavedPlacement(MainWindow mainWindow, SalarySettings settings, DisplayMode mode)
     {
         var pos = GetSavedPosition(settings, mode);
-        if (pos == null)
-        {
-            return null;
-        }
-
+        if (pos == null) return null;
         var bounds = ScreenHelper.FindScreenBoundsForRestore(pos.Left, pos.Top, pos.ScreenDeviceName, mainWindow);
         return (pos.Left, pos.Top, bounds);
     }
 
     private void ActivateMainWindow()
     {
-        if (_mainWindow == null || _mainVm == null || _mainVm.DisplayMode == DisplayMode.None)
-        {
-            return;
-        }
-
+        if (_mainWindow == null || _mainVm == null || _mainVm.DisplayMode == DisplayMode.None) return;
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
@@ -171,7 +145,7 @@ public partial class App
 
     private void CreateMainViewModelAndWindow()
     {
-        _mainVm = new MainViewModel(_settingsService!);
+        _mainVm = new MainViewModel(_store!);
         _mainVm.HotkeySettingsChanged += OnHotkeySettingsChanged;
 
         _mainWindow = new MainWindow { DataContext = _mainVm };
@@ -181,47 +155,34 @@ public partial class App
 
     private SalarySettings LoadStartupSettings()
     {
-        _settingsService = new SettingsService();
-        var settings = _settingsService.Load();
+        var dataDir = AppDataMigration.ResolveAndMigrate();
+        _settingsService = new SettingsService(dataDir);
+        var historyService = new HistoryService(Path.Combine(dataDir, "history"));
+        _store = new ConfigurationStore(_settingsService, historyService);
+
+        // Backfill any missed history days (crash recovery, multi-day gap).
+        HistoryBackfillService.Backfill(historyService, _store.CurrentConfiguration, DateOnly.FromDateTime(DateTime.Now));
+
+        var settings = _store.CurrentSettings;
         _startupSettings = settings;
         LocalizationService.Apply(settings.Language);
         ThemeService.Apply(settings.Theme);
         return settings;
     }
 
-    private bool _hotkeyConflictWarned;
-
     private void OnHotkeySettingsChanged()
     {
-        var s = _settingsService!.Load();
+        var s = _store!.CurrentSettings;
         if (_hotkeyService != null)
         {
             var registered = _hotkeyService.Update(s.HotkeyModifiers, s.HotkeyVirtualKey);
-            if (!registered && !_hotkeyConflictWarned)
-            {
-                // Re-registration happens on every settings save; warn once per session so a
-                // conflicting hotkey doesn't spam dialogs during normal use.
-                _hotkeyConflictWarned = true;
-                var key = HotkeyService.Format(s.HotkeyModifiers, s.HotkeyVirtualKey);
-                MessageBox.Show(
-                    string.Format((string)FindResource("Error.HotkeyConflict")!, key),
-                    "PayBeat",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-            }
+            AppLogger.Log($"Hotkey update: {HotkeyService.Format(s.HotkeyModifiers, s.HotkeyVirtualKey)} → {(registered ? "OK" : "FAILED (occupied)")}");
         }
     }
 
-    /// <summary>
-    /// Fires when the widget window content has rendered, applying startup placement.
-    /// </summary>
     private void OnMainWindowContentRendered(object? sender, EventArgs e)
     {
-        if (_mainWindow == null || _startupSettings == null)
-        {
-            return;
-        }
-
+        if (_mainWindow == null || _startupSettings == null) return;
         _mainWindow.ContentRendered -= OnMainWindowContentRendered;
         ApplyStartupPlacement(_mainWindow, _startupSettings);
         _mainWindow.IsRestoringStartupPosition = false;
@@ -229,55 +190,32 @@ public partial class App
 
     private void OnMainWindowSourceInitialized(object? sender, EventArgs e)
     {
-        var s = _settingsService!.Load();
+        var s = _store!.CurrentSettings;
         _hotkeyService = new HotkeyService();
         var registered = _hotkeyService.Register(_mainWindow!, s.HotkeyModifiers, s.HotkeyVirtualKey);
-        if (!registered)
-        {
-            var key = HotkeyService.Format(s.HotkeyModifiers, s.HotkeyVirtualKey);
-            MessageBox.Show(
-                string.Format((string)FindResource("Error.HotkeyConflict")!, key),
-                "PayBeat",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-        }
+        AppLogger.Log($"Hotkey register: {HotkeyService.Format(s.HotkeyModifiers, s.HotkeyVirtualKey)} → {(registered ? "OK" : "FAILED (occupied)")}");
         _hotkeyService.Triggered += ToggleWindowVisibility;
     }
 
-    /// <summary>
-    /// Proactively saves the window position when Windows is shutting down or the user is logging off.
-    /// WPF does not guarantee that <see cref="Window.Closing"/>/<see cref="OnExit"/> run in response to
-    /// a session-ending signal, so this subscribes directly rather than relying on that incidental path.
-    /// </summary>
     private void OnSessionEnding(object? sender, SessionEndingEventArgs e)
     {
-        if (_mainWindow == null)
-        {
-            return;
-        }
-
+        if (_mainWindow == null) return;
         var pos = new WindowPosition(_mainWindow.Left, _mainWindow.Top, ScreenHelper.GetCurrentScreenDeviceName(_mainWindow));
         SaveWindowPosition(pos);
     }
 
-    /// <summary>Merges <paramref name="pos"/> into the settings slot for the active display mode and persists it.</summary>
     private void SaveWindowPosition(WindowPosition pos)
     {
-        if (_mainVm == null || _settingsService == null)
-        {
-            return;
-        }
-
-        var settings = _settingsService.Load();
+        if (_mainVm == null || _store == null) return;
+        var settings = _store.CurrentSettings;
         var updated = _mainVm.DisplayMode switch
         {
             DisplayMode.Normal => settings with { NormalPosition = pos },
             DisplayMode.Mini => settings with { MiniPosition = pos },
-            DisplayMode.None => settings,
             DisplayMode.Flex => settings with { FlexPosition = pos },
             _ => settings
         };
-        _settingsService.Save(updated);
+        _store.CommitSettingsOnly(updated);
     }
 
     private void ShowMainWindow(SalarySettings settings)
@@ -292,11 +230,9 @@ public partial class App
                 _mainWindow.Top = startupPos.Top;
             }
         }
-
         _mainWindow.Show();
     }
 
-    // Only create the HWND (for hotkey registration) without showing the window.
     private void StartHiddenInTray()
     {
         new WindowInteropHelper(_mainWindow!).EnsureHandle();
@@ -307,10 +243,7 @@ public partial class App
     {
         if (_windowsHidden)
         {
-            foreach (var w in _hiddenWindows)
-            {
-                w.Show();
-            }
+            foreach (var w in _hiddenWindows) w.Show();
             _hiddenWindows.Clear();
             _windowsHidden = false;
             _mainVm?.ResumeNotifications();
@@ -320,11 +253,8 @@ public partial class App
         {
             foreach (Window w in Current.Windows)
             {
-                if (w.IsVisible)
-                {
-                    _hiddenWindows.Add(w);
-                    w.Hide();
-                }
+                if (w.IsVisible) _hiddenWindows.Add(w);
+                w.Hide();
             }
             _windowsHidden = true;
             _mainVm?.SuspendNotifications();
@@ -335,14 +265,11 @@ public partial class App
     private bool TryAcquireSingleInstance()
     {
         _singleInstanceMutex = new Mutex(initiallyOwned: true, "PayBeat_SingleInstance", out var createdNew);
-        if (createdNew)
-        {
-            return true;
-        }
+        if (createdNew) return true;
 
         MessageBox.Show(
             (string)FindResource("Error.AlreadyRunning")!,
-            "PayBeat",
+            "今日薪动",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
         Shutdown();

@@ -2,6 +2,9 @@
   <Folder Name="/src/">
     <Project Path="src/PayBeat.App/PayBeat.App.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PayBeat.Tests/PayBeat.Tests.csproj" />
+  </Folder>
   <Folder Name="/assets/">
     <File Path="CLAUDE.md" />
     <File Path="Directory.Build.props" />

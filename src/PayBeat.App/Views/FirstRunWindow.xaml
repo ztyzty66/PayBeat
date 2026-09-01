@@ -52,7 +52,7 @@
 
         <StackPanel Margin="30,26">
 
-            <TextBlock Text="PayBeat" Foreground="{DynamicResource GreenBrush}"
+            <TextBlock Text="今日薪动" Foreground="{DynamicResource GreenBrush}"
                        FontSize="26" FontWeight="Bold"/>
             <TextBlock Text="{DynamicResource FirstRun.Title}" Foreground="{DynamicResource TextBrush}"
                        FontSize="17" FontWeight="SemiBold" Margin="0,8,0,2"/>

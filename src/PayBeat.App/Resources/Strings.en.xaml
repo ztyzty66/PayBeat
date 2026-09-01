@@ -45,9 +45,10 @@
     <sys:String x:Key="Status.Leave">On leave</sys:String>
     <sys:String x:Key="Status.BeforeWork">Before work</sys:String>
     <sys:String x:Key="Status.UntilStart">Starts in {0} min</sys:String>
+    <sys:String x:Key="Status.RestDayMessage">No pay for this day</sys:String>
 
     <!-- Settings window -->
-    <sys:String x:Key="Settings.WindowTitle">PayBeat Settings</sys:String>
+    <sys:String x:Key="Settings.WindowTitle">今日薪动 设置</sys:String>
     <sys:String x:Key="Settings.Title">Settings</sys:String>
     <sys:String x:Key="Settings.Cancel">Cancel</sys:String>
     <sys:String x:Key="Settings.Save">Save</sys:String>
@@ -68,7 +69,7 @@
     <sys:String x:Key="Settings.Week.Double">2-day rest</sys:String>
     <sys:String x:Key="Settings.Week.Single">1-day rest</sys:String>
     <sys:String x:Key="Settings.Week.Custom">Custom</sys:String>
-    <sys:String x:Key="Settings.RestDays">Rest days</sys:String>
+    <sys:String x:Key="Settings.RestDays">Weekly workdays</sys:String>
     <sys:String x:Key="Settings.Section.Schedule">Schedule</sys:String>
     <sys:String x:Key="Settings.CurrentSchedule">Current schedule</sys:String>
     <sys:String x:Key="Settings.ManageSchedules">Manage schedules</sys:String>
@@ -94,6 +95,8 @@
     <sys:String x:Key="Schedule.DeleteDisabled">The schedule in use cannot be deleted</sys:String>
     <sys:String x:Key="Schedule.ConfirmDelete">Delete schedule "{0}"?</sys:String>
     <sys:String x:Key="Schedule.Close">Close</sys:String>
+    <sys:String x:Key="Schedule.Activate">Set as Current</sys:String>
+    <sys:String x:Key="Schedule.CurrentlyActive">✓ Currently Active</sys:String>
 
     <!-- Calendar page -->
     <sys:String x:Key="Day.Mon">Mo</sys:String>
@@ -154,23 +157,25 @@
     <sys:String x:Key="Settings.LanguageAuto">Auto</sys:String>
     <sys:String x:Key="Settings.Hotkey">Show/hide hotkey</sys:String>
     <sys:String x:Key="Settings.HotkeyHint">Click, then press a key combination</sys:String>
+    <sys:String x:Key="Settings.Hotkey.Ok">✓ Hotkey available</sys:String>
+    <sys:String x:Key="Settings.Hotkey.Conflict">⚠ {0} is occupied by another program — not active</sys:String>
     <sys:String x:Key="Settings.HotkeyCapturing">Press a key combination...</sys:String>
     <sys:String x:Key="Settings.Section.About">About</sys:String>
-    <sys:String x:Key="Settings.BasedOn">Based on PayBeat · original project by coldhighsun · MIT License</sys:String>
+    <sys:String x:Key="Settings.BasedOn">基于开源项目 PayBeat 二次开发 · original project by coldhighsun · MIT License</sys:String>
     <sys:String x:Key="Settings.OpenOriginal">Visit original project</sys:String>
 
     <!-- About window -->
-    <sys:String x:Key="About.WindowTitle">About PayBeat</sys:String>
+    <sys:String x:Key="About.WindowTitle">关于今日薪动</sys:String>
     <sys:String x:Key="About.Description">A lightweight floating widget that shows your earnings in real time.</sys:String>
     <sys:String x:Key="About.Author">Author</sys:String>
     <sys:String x:Key="About.License">License</sys:String>
     <sys:String x:Key="About.GitHub">GitHub</sys:String>
     <sys:String x:Key="About.Close">Close</sys:String>
-    <sys:String x:Key="About.BasedOn">Based on PayBeat by coldhighsun (MIT)</sys:String>
+    <sys:String x:Key="About.BasedOn">基于开源项目 PayBeat 二次开发</sys:String>
     <sys:String x:Key="About.Version">Version</sys:String>
 
     <!-- First run -->
-    <sys:String x:Key="FirstRun.Title">Welcome to PayBeat</sys:String>
+    <sys:String x:Key="FirstRun.Title">欢迎使用今日薪动</sys:String>
     <sys:String x:Key="FirstRun.Subtitle">A few quick settings, then watch today's earnings grow</sys:String>
     <sys:String x:Key="FirstRun.Start">Get started</sys:String>
     <sys:String x:Key="FirstRun.Lunch">Lunch break (unpaid)</sys:String>
@@ -194,7 +199,7 @@
     <sys:String x:Key="Error.SalaryPositive">Amount must be greater than 0</sys:String>
     <sys:String x:Key="Error.SalaryTooLarge">Amount cannot exceed 99,999,999</sys:String>
     <sys:String x:Key="Error.WorkEndAfterStart">End time must be after start time (overnight shifts are not supported)</sys:String>
-    <sys:String x:Key="Error.AlreadyRunning">PayBeat is already running.</sys:String>
+    <sys:String x:Key="Error.AlreadyRunning">今日薪动已在运行中。</sys:String>
     <sys:String x:Key="Error.HotkeyConflict">Failed to register hotkey {0}; it may be in use by another program.</sys:String>
     <sys:String x:Key="Error.LunchBreakInvalid">Lunch break must be inside the work window, and end after it starts</sys:String>
     <sys:String x:Key="Error.MilestoneAmountPositive">Milestone amount must be greater than 0</sys:String>
@@ -211,6 +216,56 @@
     <sys:String x:Key="Notification.EndOfDayTitle">Almost there</sys:String>
     <sys:String x:Key="Notification.EndOfDayBody">{0} minutes until the end of the workday.</sys:String>
     <sys:String x:Key="Notification.UpdateAvailableTitle">Update available</sys:String>
-    <sys:String x:Key="Notification.UpdateAvailableBody">PayBeat v{0} has been released; open "About" to download.</sys:String>
+    <sys:String x:Key="Notification.UpdateAvailableBody">今日薪动 v{0} 已发布，打开"关于"窗口下载。</sys:String>
+<sys:String x:Key="Schedule.LunchShort">Lunch {0} – {1}</sys:String>
+<sys:String x:Key="Schedule.EffectiveFromShort">from {0}</sys:String>
+<sys:String x:Key="Schedule.ActiveBadge">✅ In use</sys:String>
+<sys:String x:Key="Schedule.NotActiveHint">Activate to apply</sys:String>
+<sys:String x:Key="Calendar.Source.Label">Source</sys:String>
+<sys:String x:Key="Calendar.Source.Status">Current status</sys:String>
+<sys:String x:Key="Calendar.Source.ManualOverride">Set manually</sys:String>
+<sys:String x:Key="Calendar.Source.PublicHoliday">Public holiday</sys:String>
+<sys:String x:Key="Calendar.Source.MakeupWork">Makeup workday</sys:String>
+<sys:String x:Key="Calendar.Source.WeekPolicy">Work policy</sys:String>
+<sys:String x:Key="Calendar.Source.DefaultRule">Default rule</sys:String>
+    <sys:String x:Key="Calendar.ManualBadge">Manual</sys:String>
+    <sys:String x:Key="Calendar.HolidayCoverageWarning">Official holiday data for this year is not yet available. Days follow the work week policy and manual overrides.</sys:String>
+<sys:String x:Key="Settings.Card.Pay">Salary</sys:String>
+<sys:String x:Key="Settings.Card.Work">Work policy</sys:String>
+<sys:String x:Key="Settings.Card.Schedule">Schedule</sys:String>
+<sys:String x:Key="Settings.Card.Info">Note</sys:String>
+<sys:String x:Key="Settings.Info.Text">Salary, work policy and schedules apply from the chosen effective date; history is never rewritten.</sys:String>
+<sys:String x:Key="Display.Card.Widget">Widget</sys:String>
+<sys:String x:Key="Display.Card.Appearance">Appearance</sys:String>
+<sys:String x:Key="Display.Card.Refresh">Refresh</sys:String>
+<sys:String x:Key="Display.RefreshHint">Shorter intervals refresh the amount more often at slightly higher power use.</sys:String>
+<sys:String x:Key="System.Card.Startup">Startup &amp; reminders</sys:String>
+<sys:String x:Key="System.Card.Hotkey">Hotkey</sys:String>
+<sys:String x:Key="System.Card.Language">Language</sys:String>
+<sys:String x:Key="System.Card.About">About</sys:String>
+<sys:String x:Key="About.Tagline">A lightweight desktop tool that shows your pay progress in real time.</sys:String>
+<sys:String x:Key="View.TodayTarget">Today's target</sys:String>
+<sys:String x:Key="View.RestTitle">😴 Day off</sys:String>
+<sys:String x:Key="Schedule.ActiveHint">Currently effective. Select another schedule and press "Set as current" to switch.</sys:String>
+<sys:String x:Key="Schedule.LunchLabel">Lunch</sys:String>
+<sys:String x:Key="Settings.Effective.Title">Effective from</sys:String>
+<sys:String x:Key="Settings.Effective.FirstOfMonth">From the 1st</sys:String>
+<sys:String x:Key="Settings.Effective.Today">From today</sys:String>
+<sys:String x:Key="Settings.Effective.Custom">Custom date</sys:String>
+<sys:String x:Key="Settings.Effective.Scope">Applies to salary amount and work policy; schedules start from today</sys:String>
+<sys:String x:Key="Error.EffectiveDateInvalid">⚠ Invalid custom effective date, e.g. 2026-08-01</sys:String>
+<sys:String x:Key="Status.Fish">🐟 Earning now</sys:String>
+<sys:String x:Key="Status.AlmostDone">⏳ Almost there</sys:String>
+<sys:String x:Key="Status.DoneEmoji">🎉 Day complete</sys:String>
+<sys:String x:Key="Status.LunchEmoji">🍜 Lunch break</sys:String>
+<sys:String x:Key="Status.BeforeWorkEmoji">☕ Not started yet</sys:String>
+<sys:String x:Key="Status.RestEmoji">😴 Day off</sys:String>
+<sys:String x:Key="Status.HolidayEmoji">😴 Paid holiday</sys:String>
+<sys:String x:Key="Status.PtoEmoji">😎 Paid time off · relax, it counts</sys:String>
+<sys:String x:Key="Status.LeaveEmoji">🌴 On leave today</sys:String>
+<sys:String x:Key="Status.LeavePartial">🌴 Partial leave today</sys:String>
+<sys:String x:Key="Schedule.NewName">🆕 New schedule</sys:String>
+<sys:String x:Key="Schedule.BadgeUnsaved">Unsaved</sys:String>
+<sys:String x:Key="Schedule.BadgePending">Pending</sys:String>
 
 </ResourceDictionary>

@@ -18,6 +18,12 @@ public static class ThemeService
     /// <param name="theme">Theme code or <c>"auto"</c>.</param>
     public static void Apply(string theme)
     {
+        // Null-safe for non-WPF hosts (unit tests): without an Application there is nothing to swap.
+        if (Application.Current is null)
+        {
+            return;
+        }
+
         var resolved = Resolve(theme);
         var dicts = Application.Current.Resources.MergedDictionaries;
 

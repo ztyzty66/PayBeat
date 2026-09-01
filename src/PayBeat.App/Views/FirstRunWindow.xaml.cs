@@ -6,18 +6,18 @@ using PayBeat.App.Services;
 namespace PayBeat.App.Views;
 
 /// <summary>
-/// First-run setup: one compact form (salary mode, amount, work week, times, lunch) that seeds
-/// the versioned profile model, marks setup complete, and drops the user straight into the widget.
+/// First-run setup: one compact form that seeds the versioned profile model, marks setup complete,
+/// and drops the user straight into the widget.
 /// </summary>
 public partial class FirstRunWindow
 {
-    private readonly SettingsService _settingsService;
+    private readonly ConfigurationStore _store;
 
-    /// <summary>Builds the first-run window over the settings store.</summary>
-    public FirstRunWindow(SettingsService settingsService)
+    /// <summary>Builds the first-run window over the configuration store.</summary>
+    public FirstRunWindow(ConfigurationStore store)
     {
         InitializeComponent();
-        _settingsService = settingsService;
+        _store = store;
         StartTime.SelectedTime = new TimeOnly(9, 0);
         EndTime.SelectedTime = new TimeOnly(18, 0);
         LunchStartTime.SelectedTime = new TimeOnly(12, 0);
@@ -51,13 +51,17 @@ public partial class FirstRunWindow
             : WeekCustom.IsChecked == true ? WorkWeekType.Custom
             : WorkWeekType.DoubleRest;
         var mode = ModeDaily.IsChecked == true ? SalaryMode.Daily : SalaryMode.Monthly;
-        var since = new DateOnly(2000, 1, 1);
+        // Salary and work policy cover the whole current month from day one; the work
+        // schedule starts today (mid-month schedule switches are the normal case).
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var since = new DateOnly(today.Year, today.Month, 1);
+        var scheduleSince = today;
         var scheduleName = LocalizationService.Get("Salary.DefaultScheduleName");
 
-        var existing = _settingsService.Load();
+        var existing = _store.CurrentSettings;
         var settings = existing with
         {
-            ConfigVersion = 2,
+            ConfigVersion = 3,
             SalaryProfiles = [new SalaryProfile
             {
                 Mode = mode,
@@ -74,13 +78,13 @@ public partial class FirstRunWindow
                 LunchBreakEnabled = lunchOn,
                 LunchBreakStart = lunchStart,
                 LunchBreakEnd = lunchEnd,
-                EffectiveFrom = since,
+                EffectiveFrom = scheduleSince,
             }],
             WeekPolicies = [WorkWeekPolicy.Create(weekType, since)],
             SetupCompleted = true,
         };
 
-        _settingsService.Save(settings);
+        _store.Commit(settings);
         Close();
     }
 

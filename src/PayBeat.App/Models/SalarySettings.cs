@@ -34,9 +34,11 @@ public record SalarySettings
     public DisplayMode DisplayMode { get; init; } = DisplayMode.Normal;
 
     /// <summary>
-    /// Whether the widget window is pinned above all other windows.
+    /// Whether the widget window is pinned above all other windows. Applies to the main
+    /// floating widget only — function windows (Settings/Schedule/DayEditor/Detail/About)
+    /// are never globally topmost. Default off: the widget participates in normal Z-order.
     /// </summary>
-    public bool AlwaysOnTop { get; init; } = true;
+    public bool AlwaysOnTop { get; init; } = false;
 
     /// <summary>
     /// Timer tick interval in seconds for refreshing the earnings display.
@@ -145,8 +147,8 @@ public record SalarySettings
 
     // ── v2 configuration model (versioned profiles, overrides) ──────────────────────────
 
-    /// <summary>Schema version of this settings file. 1 = legacy flat settings; 2 = versioned profiles.</summary>
-    public int ConfigVersion { get; init; } = 2;
+    /// <summary>Schema version of this settings file. Current: v3 (versioned profiles).</summary>
+    public int ConfigVersion { get; init; } = 3;
 
     /// <summary>
     /// Versioned salary profiles; the effective one for a date is the latest EffectiveFrom ≤ date.
@@ -187,4 +189,49 @@ public record SalarySettings
 
     /// <summary>Display name carried over for the legacy (migrated) schedule profile.</summary>
     public string LegacyScheduleName { get; init; } = "";
+
+    /// <summary>
+    /// Creates a true deep clone of this settings instance. All nested mutable collections
+    /// (lists, dictionaries, HashSets inside WorkWeekPolicy) are cloned so that the caller
+    /// can safely mutate them without affecting the original.
+    /// </summary>
+    public SalarySettings DeepClone() => new()
+    {
+        DailySalary = DailySalary,
+        WorkStart = WorkStart,
+        WorkEnd = WorkEnd,
+        Currency = Currency,
+        DisplayMode = DisplayMode,
+        AlwaysOnTop = AlwaysOnTop,
+        RefreshInterval = RefreshInterval,
+        Opacity = Opacity,
+        Language = Language,
+        HotkeyModifiers = HotkeyModifiers,
+        HotkeyVirtualKey = HotkeyVirtualKey,
+        NormalPosition = NormalPosition,
+        MiniPosition = MiniPosition,
+        FlexPosition = FlexPosition,
+        LunchBreakEnabled = LunchBreakEnabled,
+        LunchBreakStart = LunchBreakStart,
+        LunchBreakEnd = LunchBreakEnd,
+        WorkOnWeekends = WorkOnWeekends,
+        EnableEndOfDayReminder = EnableEndOfDayReminder,
+        EndOfDayReminderMinutes = EndOfDayReminderMinutes,
+        EnableMilestoneNotifications = EnableMilestoneNotifications,
+        MilestoneAmount = MilestoneAmount,
+        Theme = Theme,
+        LastUpdateCheckUtc = LastUpdateCheckUtc,
+        ConfigVersion = ConfigVersion,
+        SalaryProfiles = new List<Domain.SalaryProfile>(SalaryProfiles),
+        ScheduleProfiles = new List<Domain.WorkScheduleProfile>(ScheduleProfiles),
+        WeekPolicies = WeekPolicies.Select(wp => new Domain.WorkWeekPolicy
+        {
+            Type = wp.Type,
+            WorkDays = new HashSet<DayOfWeek>(wp.WorkDays),
+            EffectiveFrom = wp.EffectiveFrom,
+        }).ToList(),
+        Overrides = new Dictionary<string, Domain.CalendarOverride>(Overrides),
+        SetupCompleted = SetupCompleted,
+        LegacyScheduleName = LegacyScheduleName,
+    };
 }

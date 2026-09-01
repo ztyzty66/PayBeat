@@ -216,7 +216,7 @@
     <sys:String x:Key="Notification.EndOfDayTitle">Almost there</sys:String>
     <sys:String x:Key="Notification.EndOfDayBody">{0} minutes until the end of the workday.</sys:String>
     <sys:String x:Key="Notification.UpdateAvailableTitle">Update available</sys:String>
-    <sys:String x:Key="Notification.UpdateAvailableBody">今日薪动 v{0} 已发布，打开"关于"窗口下载。</sys:String>
+    <sys:String x:Key="Notification.UpdateAvailableBody">今日薪动 v{0} 已发布，打开"设置 → 系统"即可更新。</sys:String>
 <sys:String x:Key="Schedule.LunchShort">Lunch {0} – {1}</sys:String>
 <sys:String x:Key="Schedule.EffectiveFromShort">from {0}</sys:String>
 <sys:String x:Key="Schedule.ActiveBadge">✅ In use</sys:String>
@@ -254,7 +254,7 @@
 <sys:String x:Key="Settings.Effective.Custom">Custom date</sys:String>
 <sys:String x:Key="Settings.Effective.Scope">Applies to salary amount and work policy; schedules start from today</sys:String>
 <sys:String x:Key="Error.EffectiveDateInvalid">⚠ Invalid custom effective date, e.g. 2026-08-01</sys:String>
-<sys:String x:Key="Status.Fish">🐟 Earning now</sys:String>
+    <sys:String x:Key="Status.Fish">💰 Earning now</sys:String>
 <sys:String x:Key="Status.AlmostDone">⏳ Almost there</sys:String>
 <sys:String x:Key="Status.DoneEmoji">🎉 Day complete</sys:String>
 <sys:String x:Key="Status.LunchEmoji">🍜 Lunch break</sys:String>
@@ -266,6 +266,15 @@
 <sys:String x:Key="Status.LeavePartial">🌴 Partial leave today</sys:String>
 <sys:String x:Key="Schedule.NewName">🆕 New schedule</sys:String>
 <sys:String x:Key="Schedule.BadgeUnsaved">Unsaved</sys:String>
-<sys:String x:Key="Schedule.BadgePending">Pending</sys:String>
+    <sys:String x:Key="Schedule.BadgePending">Pending</sys:String>
+    <sys:String x:Key="Settings.Update.Checking">Checking for updates...</sys:String>
+    <sys:String x:Key="Settings.Update.UpToDate">✓ You're up to date</sys:String>
+    <sys:String x:Key="Settings.Update.Available">New version v{0} available</sys:String>
+    <sys:String x:Key="Settings.Update.Downloading">Downloading v{0}</sys:String>
+    <sys:String x:Key="Settings.Update.Error">Update check failed. Please try again later.</sys:String>
+    <sys:String x:Key="Settings.Update.VerifyFailed">File verification failed. Install cancelled.</sys:String>
+    <sys:String x:Key="Settings.Update.CheckButton">Check for updates</sys:String>
+    <sys:String x:Key="Settings.Update.DownloadButton">Download and install</sys:String>
+    <sys:String x:Key="Settings.Update.VersionLabel">Current version v{0}</sys:String>
 
 </ResourceDictionary>

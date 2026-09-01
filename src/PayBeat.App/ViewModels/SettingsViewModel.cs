@@ -22,6 +22,7 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     private readonly MainViewModel _mainVm;
     private readonly ConfigurationStore _store;
     private readonly ConfigurationDraft _draft;
+    private readonly UpdateService _updateService;
     private PayConfiguration _config;
 
     private bool _alwaysOnTop;
@@ -50,6 +51,16 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     private string _hotkeyStatus = "";
     private bool _originalRunAtStartup;
 
+    // ── Update state ───────────────────────────────────────────────────────
+    private string _updateStatusText = "";
+    private string _updateReleaseNotes = "";
+    private int _downloadProgress;
+    private bool _isChecking;
+    private bool _isDownloading;
+    private bool _hasUpdateAvailable;
+    private string? _pendingDownloadUrl;
+    private string? _pendingSha256;
+
     /// <summary>Which effective date the salary amount and work policy apply from.</summary>
     public enum EffectiveDateChoice
     {
@@ -66,10 +77,11 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     private EffectiveDateChoice _effectiveChoice = EffectiveDateChoice.FirstOfMonth;
     private string _customEffectiveDateText = "";
 
-    public SettingsViewModel(ConfigurationStore store, MainViewModel mainVm)
+    public SettingsViewModel(ConfigurationStore store, MainViewModel mainVm, UpdateService? updateService = null)
     {
         _store = store;
         _mainVm = mainVm;
+        _updateService = updateService ?? new UpdateService();
         _draft = store.CreateDraft();
         _config = _draft.BuildPreviewConfiguration(store.PayData);
 
@@ -109,6 +121,8 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         SaveCommand = new RelayCommand(Save, CanSave);
         CancelCommand = new RelayCommand(CloseWindow);
         ManageSchedulesCommand = new RelayCommand(OpenScheduleManager);
+        CheckUpdateCommand = new RelayCommand(() => _ = CheckUpdateAsync(), () => CanCheckUpdate);
+        DownloadInstallCommand = new RelayCommand(() => _ = DownloadInstallAsync(), () => CanDownloadInstall);
         RefreshHotkeyStatus();
     }
 
@@ -253,6 +267,16 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     public TimeOnly WorkEnd { get => _workEnd; set => SetField(ref _workEnd, value); }
     public TimeOnly WorkStart { get => _workStart; set => SetField(ref _workStart, value); }
 
+    // ── Update properties ──────────────────────────────────────────────────
+    public string CurrentVersion => AppVersion.Current;
+    public string UpdateStatusText { get => _updateStatusText; private set => SetField(ref _updateStatusText, value); }
+    public string UpdateReleaseNotes { get => _updateReleaseNotes; private set => SetField(ref _updateReleaseNotes, value); }
+    public int DownloadProgress { get => _downloadProgress; private set => SetField(ref _downloadProgress, value); }
+    public bool IsChecking { get => _isChecking; private set { if (SetField(ref _isChecking, value)) NotifyUpdateUiStateChanged(); } }
+    public bool IsDownloading { get => _isDownloading; private set { if (SetField(ref _isDownloading, value)) NotifyUpdateUiStateChanged(); } }
+    public ICommand CheckUpdateCommand { get; }
+    public ICommand DownloadInstallCommand { get; }
+
     string IDataErrorInfo.this[string columnName] => columnName switch
     {
         nameof(AmountText) => ValidateAmount() ?? string.Empty,
@@ -260,6 +284,140 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         nameof(MilestoneAmountText) => EnableMilestoneNotifications ? ValidateMilestoneAmount() ?? string.Empty : string.Empty,
         _ => string.Empty,
     };
+
+    // ── Update logic ───────────────────────────────────────────────────────
+
+    public bool HasUpdateAvailable
+    {
+        get => _hasUpdateAvailable;
+        private set { if (SetField(ref _hasUpdateAvailable, value)) NotifyUpdateUiStateChanged(); }
+    }
+
+    public bool CanCheckUpdate => !_isChecking && !_isDownloading;
+    public bool CanDownloadInstall => _hasUpdateAvailable && !_isDownloading && !_isChecking;
+
+    /// <summary>Single helper to notify all derived update UI states after any base state change.</summary>
+    private void NotifyUpdateUiStateChanged()
+    {
+        OnPropertyChanged(nameof(CanCheckUpdate));
+        OnPropertyChanged(nameof(CanDownloadInstall));
+        ((RelayCommand)CheckUpdateCommand).RaiseCanExecuteChanged();
+        ((RelayCommand)DownloadInstallCommand).RaiseCanExecuteChanged();
+    }
+
+    public async Task CheckUpdateAsync()
+    {
+        if (_isChecking || _isDownloading) return;
+        IsChecking = true;
+        UpdateStatusText = LocalizationService.Get("Settings.Update.Checking");
+        UpdateReleaseNotes = "";
+        HasUpdateAvailable = false;
+        _pendingDownloadUrl = null;
+        _pendingSha256 = null;
+        try
+        {
+            var result = await _updateService.CheckForUpdateAsync(AppVersion.Current);
+            switch (result.Status)
+            {
+                case UpdateService.UpdateCheckStatus.Available:
+                    HasUpdateAvailable = true;
+                    _pendingDownloadUrl = result.DownloadUrl;
+                    _pendingSha256 = result.Sha256Digest;
+                    UpdateStatusText = string.Format(LocalizationService.Get("Settings.Update.Available"), result.RemoteVersion);
+                    UpdateReleaseNotes = result.ReleaseNotes ?? "";
+                    _mainVm?.NotifyUpdateAvailable(result.RemoteVersion!);
+                    break;
+                case UpdateService.UpdateCheckStatus.UpToDate:
+                    UpdateStatusText = LocalizationService.Get("Settings.Update.UpToDate");
+                    break;
+                case UpdateService.UpdateCheckStatus.Error:
+                    UpdateStatusText = LocalizationService.Get("Settings.Update.Error");
+                    break;
+            }
+        }
+        catch
+        {
+            UpdateStatusText = LocalizationService.Get("Settings.Update.Error");
+        }
+        finally
+        {
+            IsChecking = false;
+        }
+    }
+
+    private async Task DownloadInstallAsync()
+    {
+        if (_isChecking || _isDownloading || _pendingDownloadUrl is null) return;
+        IsDownloading = true;
+        DownloadProgress = 0;
+        UpdateStatusText = string.Format(LocalizationService.Get("Settings.Update.Downloading"), "");
+        try
+        {
+            var path = await _updateService.DownloadInstallerAsync(
+                _pendingDownloadUrl,
+                progress => DownloadProgress = progress);
+
+            if (path is null)
+            {
+                UpdateStatusText = LocalizationService.Get("Settings.Update.Error");
+                HasUpdateAvailable = true; // Allow retry
+                return;
+            }
+
+            // SHA256 verification — mandatory.
+            if (_pendingSha256 is null || !UpdateService.VerifySha256(path, _pendingSha256))
+            {
+                try { File.Delete(path); } catch { }
+                UpdateStatusText = LocalizationService.Get("Settings.Update.VerifyFailed");
+                HasUpdateAvailable = false; // Digest mismatch — must re-check
+                return;
+            }
+
+            // Launch installer helper.
+            if (_updateService.LaunchInstallerAfterExit(path))
+            {
+                if (Application.Current is not null)
+                    Application.Current.Shutdown();
+            }
+            else
+            {
+                UpdateStatusText = LocalizationService.Get("Settings.Update.Error");
+            }
+        }
+        catch
+        {
+            UpdateStatusText = LocalizationService.Get("Settings.Update.Error");
+        }
+        finally
+        {
+            IsDownloading = false;
+        }
+    }
+
+    /// <summary>Called from App startup for auto-check. Non-blocking, fires tray notification only.</summary>
+    public async Task AutoCheckUpdateAsync()
+    {
+        try
+        {
+            var result = await _updateService.CheckForUpdateAsync(AppVersion.Current);
+            if (result.Status == UpdateService.UpdateCheckStatus.Available)
+            {
+                // Marshal notification to UI thread.
+                if (Application.Current?.Dispatcher is { } dispatcher)
+                {
+                    dispatcher.Invoke(() => _mainVm?.NotifyUpdateAvailable(result.RemoteVersion!));
+                }
+                else
+                {
+                    _mainVm?.NotifyUpdateAvailable(result.RemoteVersion!);
+                }
+            }
+        }
+        catch
+        {
+            // Silent — auto-check must never break core flow.
+        }
+    }
 
     private bool CanSave() => Validate() is null;
 

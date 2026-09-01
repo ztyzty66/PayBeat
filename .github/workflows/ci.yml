@@ -4,12 +4,15 @@ on:
   push:
     branches: ['**']
     tags: ['v*']
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  validate:
     runs-on: windows-latest
 
     steps:
@@ -25,8 +28,11 @@ jobs:
       - name: Build
         run: dotnet build -c Release
 
+      - name: Test
+        run: dotnet test tests/PayBeat.Tests/PayBeat.Tests.csproj -c Release --no-build
+
   release:
-    needs: build
+    needs: validate
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: windows-latest
     permissions:
@@ -62,7 +68,7 @@ jobs:
           $version = "${{ github.ref_name }}"
           $zipNameSelfContained = "PayBeat-$version-portable-standalone-win-x64.zip"
           Compress-Archive -Path "publish-selfcontained/*" -DestinationPath $zipNameSelfContained
-          echo "ZIP_NAME_SELFCONTAINED=$zipNameSelfContained" >> $env:GITHUB_ENV
+          echo "ZIP_NAME_SELF_CONTAINED=$zipNameSelfContained" >> $env:GITHUB_ENV
 
       - name: Install Inno Setup
         run: winget install --id JRSoftware.InnoSetup.7 -e --source winget --accept-package-agreements --accept-source-agreements --disable-interactivity
@@ -82,7 +88,7 @@ jobs:
           name: PayBeat ${{ github.ref_name }}
           files: |
             ${{ env.ZIP_NAME }}
-            ${{ env.ZIP_NAME_SELFCONTAINED }}
+            ${{ env.ZIP_NAME_SELF_CONTAINED }}
             ${{ env.SETUP_NAME }}
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-') }}

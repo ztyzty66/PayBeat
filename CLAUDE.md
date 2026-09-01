@@ -36,7 +36,7 @@ WPF floating widget app (.NET 10, MVVM). Shows real-time earnings as a borderles
 
 **Key entry points:**
 - `App.xaml.cs` — owns the object graph (`ConfigurationStore`, `MainViewModel`, `MainWindow`, `HotkeyService`, `TrayIconService`); enforces single-instance via a named `Mutex`; saves window position via `CommitSettingsOnly`; runs `HistoryBackfillService.Backfill()` at startup; takes exit snapshot on exit.
-- `MainViewModel.cs` — owns the `DispatcherTimer` and all earnings/display state; `CheckDateRoll()` iterates each missed day individually for multi-day gap recovery; `ScheduleWakeTimer()` computes `min(midnight, next day's WorkStart)` so schedule changes at 00:00 are never missed; `ExitSnapshot()` only finalizes days that are truly completed (time >= WorkEnd, or rest/holiday/PTO).
+- `MainViewModel.cs` — owns the `DispatcherTimer` and all earnings/display state; `CheckDateRoll()` iterates each missed day individually for multi-day gap recovery; `ScheduleWakeTimer()` delegates to `WakeSchedulePolicy.NextWakeBoundary()` which wakes at today's WorkStart (before work) or next midnight (after work / off-day), ensuring the midnight refresh re-resolves the new day's effective schedule; `ExitSnapshot()` only finalizes days that are truly completed (time >= WorkEnd, or rest/holiday/PTO).
 - `MainWindow.xaml` — borderless `Window` with a `ContentControl` that switches view templates via `DataTrigger` on `DisplayMode`.
 
 **ConfigurationStore (single source of truth):**
@@ -70,7 +70,7 @@ WPF floating widget app (.NET 10, MVVM). Shows real-time earnings as a borderles
 - `HistoryService` persists per-day and per-month history snapshots to `%APPDATA%\今日薪动\history\`.
 - `MainViewModel.CheckDateRoll()` iterates each missed day individually (multi-day gap recovery, month-boundary finalization).
 - `MainViewModel.ExitSnapshot()` only finalizes days that are truly completed (time >= WorkEnd, or rest/holiday/PTO). Never writes fake "full day" for days still in progress.
-- `HistoryBackfillService.Backfill()` runs at startup to fill any gap between the latest recorded date and yesterday. Idempotent, uses each day's effective configuration.
+- `HistoryBackfillService.Backfill()` runs at startup: first repairs internal missing-day gaps between existing records within each month, then fills the trailing gap from the latest known record to yesterday. Idempotent, does not overwrite existing day records, uses each day's effective configuration.
 - `MonthHistory.PassedWorkdaysSnapshot` stores the passed workday count at finalization.
 - `DetailWindow` uses `PassedWorkdaysSnapshot`; shows "--" for old files that lack it (never uses `Days.Count`).
 

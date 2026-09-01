@@ -1,5 +1,7 @@
 using PayBeat.App.Domain;
+using PayBeat.App.Models;
 using PayBeat.App.Services;
+using PayBeat.App.ViewModels;
 
 namespace PayBeat.Tests;
 
@@ -58,23 +60,61 @@ public class ReleaseHardeningTests
         Assert.Equal(2026, calendar.MaxCoveredYear);
     }
 
-    // ── Calendar Coverage Warning ──────────────────────────────────────────
+    // ── Calendar Coverage Warning (CalendarViewModel) ──────────────────────
 
-    [Fact]
-    public void Calendar_2027_ShowsCoverageWarning()
+    private static (CalendarViewModel vm, ConfigurationStore store) CreateCalendarVm(DateOnly displayMonth)
     {
-        // Create a config that resolves to 2027 dates.
-        var calendar = HolidayService.BuiltIn;
-        Assert.False(calendar.CoversYear(2027));
-        // The warning is UI-level; here we verify the API that drives it.
-        Assert.False(calendar.CoversYear(2027));
+        var tempDir = Path.Combine(Path.GetTempPath(), $"PayBeatCoverage_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        var store = new ConfigurationStore(
+            new SettingsService(tempDir),
+            new HistoryService(Path.Combine(tempDir, "history")));
+        var mainVm = new MainViewModel(store);
+        var vm = new CalendarViewModel(store, mainVm);
+        // Navigate to the target month using existing API.
+        var diff = (displayMonth.Year - vm.DisplayMonth.Year) * 12 + displayMonth.Month - vm.DisplayMonth.Month;
+        if (diff > 0) for (var i = 0; i < diff; i++) vm.NextMonth();
+        else for (var i = 0; i < -diff; i++) vm.PreviousMonth();
+        return (vm, store);
     }
 
     [Fact]
-    public void Calendar_2026_HidesCoverageWarning()
+    public void CalendarViewModel_2027_SetsCoverageWarningTrue()
     {
-        var calendar = HolidayService.BuiltIn;
-        Assert.True(calendar.CoversYear(2026));
+        var (vm, _) = CreateCalendarVm(new DateOnly(2027, 6, 1));
+        Assert.True(vm.HasHolidayCoverageWarning);
+    }
+
+    [Fact]
+    public void CalendarViewModel_2026_SetsCoverageWarningFalse()
+    {
+        var (vm, _) = CreateCalendarVm(new DateOnly(2026, 6, 1));
+        Assert.False(vm.HasHolidayCoverageWarning);
+    }
+
+    [Fact]
+    public void CalendarViewModel_2027_WarningTextIsNonEmpty()
+    {
+        var (vm, _) = CreateCalendarVm(new DateOnly(2027, 1, 1));
+        Assert.False(string.IsNullOrEmpty(vm.HolidayCoverageWarning));
+    }
+
+    [Fact]
+    public void CalendarViewModel_2026_WarningTextIsEmpty()
+    {
+        var (vm, _) = CreateCalendarVm(new DateOnly(2026, 6, 1));
+        Assert.Equal("", vm.HolidayCoverageWarning);
+    }
+
+    // ── XAML Binding Verification ──────────────────────────────────────────
+
+    [Fact]
+    public void CalendarPageControl_Xaml_ContainsCoverageWarningBinding()
+    {
+        var xaml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..",
+            "src", "PayBeat.App", "Views", "CalendarPageControl.xaml"));
+        Assert.Contains("HasHolidayCoverageWarning", xaml);
+        Assert.Contains("HolidayCoverageWarning", xaml);
     }
 
     // ── Manual Override Still Wins ─────────────────────────────────────────

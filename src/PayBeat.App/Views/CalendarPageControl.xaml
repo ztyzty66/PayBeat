@@ -194,6 +194,23 @@
             <Ellipse Width="7" Height="7" Fill="{DynamicResource PurpleBrush}" VerticalAlignment="Center"/>
             <TextBlock Text="{DynamicResource Calendar.Legend.Leave}" Style="{StaticResource LegendItem}"/>
         </StackPanel>
+        <!-- Holiday coverage warning for uncovered years (e.g. 2027+) -->
+        <Border Background="{DynamicResource TagHolidayBrush}" CornerRadius="6"
+                Padding="8,6" Margin="0,6,0,0">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasHolidayCoverageWarning}" Value="True">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding HolidayCoverageWarning}"
+                       Foreground="{DynamicResource AmberBrush}" FontSize="11"
+                       TextWrapping="Wrap"/>
+        </Border>
         <TextBlock Text="{DynamicResource Calendar.AutoNote}"
                    Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,4,0,0"
                    TextWrapping="Wrap"/>

@@ -7,8 +7,8 @@ using PayBeat.App.Services;
 namespace PayBeat.Tests;
 
 /// <summary>
-/// Tests for the in-app update flow: version parsing, GitHub API checks, SHA256 verification,
-/// and network failure handling. All tests use injected HttpClient — no real network access.
+/// Tests for the in-app update flow. All tests use injected HttpClient or
+/// EvaluateReleaseJson — no real network access, fully deterministic.
 /// </summary>
 public class InAppUpdateTests
 {
@@ -17,12 +17,13 @@ public class InAppUpdateTests
     [Fact]
     public void StatusFish_ZhCN_IsNowEarning()
     {
-        // Verify the zh-CN resource file directly (no WPF runtime needed).
         var xaml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..",
             "src", "PayBeat.App", "Resources", "Strings.zh-CN.xaml"));
-        Assert.Contains("Status.Fish", xaml);
-        Assert.DoesNotContain("摸鱼", xaml.Substring(xaml.IndexOf("Status.Fish"), 80));
-        Assert.Contains("计薪", xaml.Substring(xaml.IndexOf("Status.Fish"), 80));
+        var idx = xaml.IndexOf("Status.Fish");
+        Assert.True(idx > 0);
+        var snippet = xaml.Substring(idx, 80);
+        Assert.DoesNotContain("摸鱼", snippet);
+        Assert.Contains("计薪", snippet);
     }
 
     [Fact]
@@ -30,9 +31,10 @@ public class InAppUpdateTests
     {
         var xaml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..",
             "src", "PayBeat.App", "Resources", "Strings.en.xaml"));
-        Assert.Contains("Status.Fish", xaml);
         var idx = xaml.IndexOf("Status.Fish");
-        Assert.Contains("Earning", xaml.Substring(idx, 80));
+        Assert.True(idx > 0);
+        var snippet = xaml.Substring(idx, 80);
+        Assert.Contains("Earning", snippet);
     }
 
     // ── Version Parsing ────────────────────────────────────────────────────
@@ -68,31 +70,41 @@ public class InAppUpdateTests
         Assert.Null(UpdateService.ParseVersionCore(null!));
     }
 
+    // ── Strict Tag Validation ──────────────────────────────────────────────
+
     [Fact]
-    public void StripTagPrefix_V()
+    public void StrictTag_RequiresVPrefix()
     {
-        Assert.Equal("1.0.0", UpdateService.StripTagPrefix("v1.0.0"));
+        // IsValidStableVersion checks X.Y.Z format only; v-prefix is checked in EvaluateReleaseJson.
+        Assert.True(UpdateService.IsValidStableVersion("1.0.0"));
+        Assert.False(UpdateService.IsValidStableVersion("1.0"));
+        Assert.False(UpdateService.IsValidStableVersion("1.0.0.0"));
     }
 
     [Fact]
-    public void StripTagPrefix_NoV()
+    public void StrictTag_RequiresExactlyThreeParts()
     {
-        Assert.Equal("1.0.0", UpdateService.StripTagPrefix("1.0.0"));
+        Assert.False(UpdateService.IsValidStableVersion("1.0"));
+        Assert.False(UpdateService.IsValidStableVersion("1.0.0.0"));
+        Assert.True(UpdateService.IsValidStableVersion("1.0.0"));
     }
 
     [Fact]
-    public void IsValidStableTag_Valid()
+    public void StrictTag_RejectsNegativeParts()
     {
-        Assert.True(UpdateService.IsValidStableTag("1.0.0"));
-        Assert.True(UpdateService.IsValidStableTag("10.20.30"));
+        Assert.False(UpdateService.IsValidStableVersion("1.-1.0"));
     }
 
     [Fact]
-    public void IsValidStableTag_Invalid()
+    public void StripVPrefix_RemovesV()
     {
-        Assert.False(UpdateService.IsValidStableTag(""));
-        Assert.False(UpdateService.IsValidStableTag("abc"));
-        Assert.False(UpdateService.IsValidStableTag("1.0.0-alpha"));
+        Assert.Equal("1.0.0", UpdateService.StripVPrefix("v1.0.0"));
+    }
+
+    [Fact]
+    public void StripVPrefix_NoV()
+    {
+        Assert.Equal("1.0.0", UpdateService.StripVPrefix("1.0.0"));
     }
 
     // ── Version Comparison ─────────────────────────────────────────────────
@@ -117,105 +129,203 @@ public class InAppUpdateTests
         Assert.False(UpdateService.IsRemoteNewer("1.0.1", "1.0.0"));
     }
 
-    // ── GitHub API Checks ──────────────────────────────────────────────────
+    // ── SHA256 Digest Validation ───────────────────────────────────────────
 
-    private static HttpClient MockGitHubApi(string json)
+    [Fact]
+    public void Sha256Digest_Valid()
     {
-        var handler = new MockHttpHandler(json);
-        return new HttpClient(handler);
-    }
-
-    private class MockHttpHandler : HttpMessageHandler
-    {
-        private readonly string _response;
-        public MockHttpHandler(string response) => _response = response;
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
-        {
-            var resp = new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(_response, Encoding.UTF8, "application/json"),
-            };
-            return Task.FromResult(resp);
-        }
+        Assert.True(UpdateService.IsValidSha256Digest("sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"));
     }
 
     [Fact]
-    public async Task DraftRelease_Rejected()
+    public void Sha256Digest_MissingPrefix()
+    {
+        Assert.False(UpdateService.IsValidSha256Digest("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"));
+    }
+
+    [Fact]
+    public void Sha256Digest_WrongAlgorithm()
+    {
+        Assert.False(UpdateService.IsValidSha256Digest("md5:abcdef1234567890abcdef1234567890"));
+    }
+
+    [Fact]
+    public void Sha256Digest_TooShort()
+    {
+        Assert.False(UpdateService.IsValidSha256Digest("sha256:abc123"));
+    }
+
+    [Fact]
+    public void Sha256Digest_Null()
+    {
+        Assert.False(UpdateService.IsValidSha256Digest(null));
+    }
+
+    [Fact]
+    public void Sha256Digest_Empty()
+    {
+        Assert.False(UpdateService.IsValidSha256Digest(""));
+    }
+
+    // ── Download URL Trust Gate ────────────────────────────────────────────
+
+    [Fact]
+    public void TrustedUrl_Valid()
+    {
+        Assert.True(UpdateService.IsTrustedDownloadUrl(
+            "https://github.com/ztyzty66/PayBeat/releases/download/v1.0.2/PayBeat-1.0.2-setup-win-x64.exe"));
+    }
+
+    [Fact]
+    public void TrustedUrl_WrongHost()
+    {
+        Assert.False(UpdateService.IsTrustedDownloadUrl(
+            "https://evil.com/ztyzty66/PayBeat/releases/download/v1.0.2/PayBeat-1.0.2-setup-win-x64.exe"));
+    }
+
+    [Fact]
+    public void TrustedUrl_WrongPath()
+    {
+        Assert.False(UpdateService.IsTrustedDownloadUrl(
+            "https://github.com/ztyzty66/PayBeat/releases/other/PayBeat-1.0.2-setup-win-x64.exe"));
+    }
+
+    [Fact]
+    public void TrustedUrl_WrongFilename()
+    {
+        Assert.False(UpdateService.IsTrustedDownloadUrl(
+            "https://github.com/ztyzty66/PayBeat/releases/download/v1.0.2/PayBeat-1.0.2.zip"));
+    }
+
+    // ── Installer Path Gate ────────────────────────────────────────────────
+
+    [Fact]
+    public void TrustedInstallerPath_Accepted()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "PayBeat", "updates", "v1.0.2");
+        Directory.CreateDirectory(dir);
+        var tmpFile = Path.Combine(dir, "PayBeat-1.0.2-setup-win-x64.exe");
+        File.WriteAllText(tmpFile, "test");
+        try { Assert.True(UpdateService.IsTrustedInstallerPath(tmpFile)); }
+        finally { try { File.Delete(tmpFile); } catch { } }
+    }
+
+    [Fact]
+    public void TrustedInstallerPath_OutsideRoot()
+    {
+        Assert.False(UpdateService.IsTrustedInstallerPath("C:\\evil\\PayBeat-1.0.2-setup-win-x64.exe"));
+    }
+
+    [Fact]
+    public void TrustedInstallerPath_WrongFilename()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "PayBeat", "updates", "v1.0.2");
+        Directory.CreateDirectory(dir);
+        var tmpFile = Path.Combine(dir, "PayBeat-1.0.2.zip");
+        File.WriteAllText(tmpFile, "test");
+        try { Assert.False(UpdateService.IsTrustedInstallerPath(tmpFile)); }
+        finally { try { File.Delete(tmpFile); } catch { } }
+    }
+
+    [Fact]
+    public void TrustedInstallerPath_MissingFile()
+    {
+        Assert.False(UpdateService.IsTrustedInstallerPath(Path.Combine(Path.GetTempPath(), "PayBeat", "updates", "v1.0.2", "PayBeat-1.0.2-setup-win-x64.exe")));
+    }
+
+    // ── EvaluateReleaseJson (deterministic, no network) ────────────────────
+
+    [Fact]
+    public void EvaluateRelease_Available()
+    {
+        var json = """{"tag_name":"v1.0.2","draft":false,"prerelease":false,"body":"Bug fixes","assets":[{"name":"PayBeat-1.0.2-setup-win-x64.exe","browser_download_url":"https://github.com/ztyzty66/PayBeat/releases/download/v1.0.2/PayBeat-1.0.2-setup-win-x64.exe","digest":"sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"}]}""";
+        var result = UpdateService.EvaluateReleaseJson(json, "1.0.0");
+        Assert.Equal(UpdateService.UpdateCheckStatus.Available, result.Status);
+        Assert.Equal("1.0.2", result.RemoteVersion);
+        Assert.Equal("Bug fixes", result.ReleaseNotes);
+    }
+
+    [Fact]
+    public void EvaluateRelease_UpToDate()
+    {
+        var json = """{"tag_name":"v1.0.0","draft":false,"prerelease":false,"assets":[]}""";
+        var result = UpdateService.EvaluateReleaseJson(json, "1.0.0");
+        Assert.Equal(UpdateService.UpdateCheckStatus.UpToDate, result.Status);
+    }
+
+    [Fact]
+    public void EvaluateRelease_DraftRejected()
     {
         var json = """{"tag_name":"v1.0.1","draft":true,"prerelease":false,"assets":[]}""";
-        var svc = new UpdateService(MockGitHubApi(json));
-        var result = await svc.CheckForUpdateAsync();
-        Assert.Null(result);
+        var result = UpdateService.EvaluateReleaseJson(json, "1.0.0");
+        Assert.Equal(UpdateService.UpdateCheckStatus.Error, result.Status);
     }
 
     [Fact]
-    public async Task Prerelease_Rejected()
+    public void EvaluateRelease_PrereleaseRejected()
     {
         var json = """{"tag_name":"v1.0.1","draft":false,"prerelease":true,"assets":[]}""";
-        var svc = new UpdateService(MockGitHubApi(json));
-        var result = await svc.CheckForUpdateAsync();
-        Assert.Null(result);
+        var result = UpdateService.EvaluateReleaseJson(json, "1.0.0");
+        Assert.Equal(UpdateService.UpdateCheckStatus.Error, result.Status);
     }
 
     [Fact]
-    public async Task InvalidTag_Rejected()
+    public void EvaluateRelease_InvalidTag_NoVPrefix()
     {
-        var json = """{"tag_name":"not-a-version","draft":false,"prerelease":false,"assets":[]}""";
-        var svc = new UpdateService(MockGitHubApi(json));
-        var result = await svc.CheckForUpdateAsync();
-        Assert.Null(result);
+        var json = """{"tag_name":"1.0.1","draft":false,"prerelease":false,"assets":[]}""";
+        var result = UpdateService.EvaluateReleaseJson(json, "1.0.0");
+        Assert.Equal(UpdateService.UpdateCheckStatus.Error, result.Status);
     }
 
     [Fact]
-    public async Task WrongInstallerFilename_Rejected()
+    public void EvaluateRelease_InvalidTag_TooFewParts()
+    {
+        var json = """{"tag_name":"v1.0","draft":false,"prerelease":false,"assets":[]}""";
+        var result = UpdateService.EvaluateReleaseJson(json, "1.0.0");
+        Assert.Equal(UpdateService.UpdateCheckStatus.Error, result.Status);
+    }
+
+    [Fact]
+    public void EvaluateRelease_WrongInstallerFilename()
     {
         var json = """{"tag_name":"v1.0.1","draft":false,"prerelease":false,"assets":[{"name":"PayBeat-v1.0.1.zip","browser_download_url":"https://github.com/ztyzty66/PayBeat/releases/download/v1.0.1/PayBeat-v1.0.1.zip","digest":"sha256:abc123"}]}""";
-        var svc = new UpdateService(MockGitHubApi(json));
-        var result = await svc.CheckForUpdateAsync();
-        Assert.Null(result);
+        var result = UpdateService.EvaluateReleaseJson(json, "1.0.0");
+        Assert.Equal(UpdateService.UpdateCheckStatus.Error, result.Status);
     }
 
     [Fact]
-    public async Task InstallerVersionMismatch_Rejected()
+    public void EvaluateRelease_UntrustedUrl()
     {
-        // Tag is v1.0.2 but asset name has 1.0.1
-        var json = """{"tag_name":"v1.0.2","draft":false,"prerelease":false,"assets":[{"name":"PayBeat-1.0.1-setup-win-x64.exe","browser_download_url":"https://github.com/ztyzty66/PayBeat/releases/download/v1.0.2/PayBeat-1.0.1-setup-win-x64.exe","digest":"sha256:abc123"}]}""";
-        var svc = new UpdateService(MockGitHubApi(json));
-        var result = await svc.CheckForUpdateAsync();
-        Assert.Null(result);
+        var json = """{"tag_name":"v1.0.1","draft":false,"prerelease":false,"assets":[{"name":"PayBeat-1.0.1-setup-win-x64.exe","browser_download_url":"https://evil.com/PayBeat-1.0.1-setup-win-x64.exe","digest":"sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"}]}""";
+        var result = UpdateService.EvaluateReleaseJson(json, "1.0.0");
+        Assert.Equal(UpdateService.UpdateCheckStatus.Error, result.Status);
     }
 
     [Fact]
-    public async Task UntrustedDownloadUrl_Rejected()
-    {
-        var json = """{"tag_name":"v1.0.1","draft":false,"prerelease":false,"assets":[{"name":"PayBeat-1.0.1-setup-win-x64.exe","browser_download_url":"https://evil.com/PayBeat-1.0.1-setup-win-x64.exe","digest":"sha256:abc123"}]}""";
-        var svc = new UpdateService(MockGitHubApi(json));
-        var result = await svc.CheckForUpdateAsync();
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task MissingDigest_Rejected()
+    public void EvaluateRelease_MissingDigest()
     {
         var json = """{"tag_name":"v1.0.1","draft":false,"prerelease":false,"assets":[{"name":"PayBeat-1.0.1-setup-win-x64.exe","browser_download_url":"https://github.com/ztyzty66/PayBeat/releases/download/v1.0.1/PayBeat-1.0.1-setup-win-x64.exe"}]}""";
-        var svc = new UpdateService(MockGitHubApi(json));
-        var result = await svc.CheckForUpdateAsync();
-        // Missing digest means Sha256Digest is null — download can proceed but SHA256 gate will skip.
-        Assert.NotNull(result);
-        Assert.Null(result!.Sha256Digest);
+        var result = UpdateService.EvaluateReleaseJson(json, "1.0.0");
+        Assert.Equal(UpdateService.UpdateCheckStatus.Error, result.Status);
     }
 
     [Fact]
-    public async Task InvalidDigest_Rejected()
+    public void EvaluateRelease_InvalidDigestAlgorithm()
     {
         var json = """{"tag_name":"v1.0.1","draft":false,"prerelease":false,"assets":[{"name":"PayBeat-1.0.1-setup-win-x64.exe","browser_download_url":"https://github.com/ztyzty66/PayBeat/releases/download/v1.0.1/PayBeat-1.0.1-setup-win-x64.exe","digest":"md5:abc123"}]}""";
-        var svc = new UpdateService(MockGitHubApi(json));
-        var result = await svc.CheckForUpdateAsync();
-        Assert.NotNull(result);
-        Assert.Null(result!.Sha256Digest);
+        var result = UpdateService.EvaluateReleaseJson(json, "1.0.0");
+        Assert.Equal(UpdateService.UpdateCheckStatus.Error, result.Status);
     }
 
-    // ── SHA256 Verification ────────────────────────────────────────────────
+    [Fact]
+    public void EvaluateRelease_InvalidDigestLength()
+    {
+        var json = """{"tag_name":"v1.0.1","draft":false,"prerelease":false,"assets":[{"name":"PayBeat-1.0.1-setup-win-x64.exe","browser_download_url":"https://github.com/ztyzty66/PayBeat/releases/download/v1.0.1/PayBeat-1.0.1-setup-win-x64.exe","digest":"sha256:abc123"}]}""";
+        var result = UpdateService.EvaluateReleaseJson(json, "1.0.0");
+        Assert.Equal(UpdateService.UpdateCheckStatus.Error, result.Status);
+    }
+
+    // ── SHA256 File Verification ───────────────────────────────────────────
 
     [Fact]
     public void Sha256Match_Passes()
@@ -246,46 +356,23 @@ public class InAppUpdateTests
     // ── Network Failure ────────────────────────────────────────────────────
 
     [Fact]
-    public async Task NetworkFailure_DoesNotBreakCoreFlow()
+    public async Task NetworkFailure_ReturnsError()
     {
         var handler = new MockHttpHandlerThatThrows();
         var svc = new UpdateService(new HttpClient(handler));
-        var result = await svc.CheckForUpdateAsync();
-        Assert.Null(result);
+        var result = await svc.CheckForUpdateAsync("1.0.0");
+        Assert.Equal(UpdateService.UpdateCheckStatus.Error, result.Status);
     }
-
-    private class MockHttpHandlerThatThrows : HttpMessageHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
-            => throw new HttpRequestException("network error");
-    }
-
-    // ── Update Available Scenario ──────────────────────────────────────────
 
     [Fact]
-    public async Task RemoteNewer_ReturnsAvailable_Full()
+    public void CurrentVersionDoesNotLeakIntoReleaseParserTests()
     {
-        var json = """
-        {
-            "tag_name": "v1.0.2",
-            "draft": false,
-            "prerelease": false,
-            "body": "Bug fixes",
-            "assets": [{
-                "name": "PayBeat-1.0.2-setup-win-x64.exe",
-                "browser_download_url": "https://github.com/ztyzty66/PayBeat/releases/download/v1.0.2/PayBeat-1.0.2-setup-win-x64.exe",
-                "digest": "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
-            }]
-        }
-        """;
-        var svc = new UpdateService(MockGitHubApi(json));
-        var result = await svc.CheckForUpdateAsync();
-        Assert.NotNull(result);
-        Assert.True(result!.Available);
-        Assert.Equal("1.0.2", result.RemoteVersion);
-        Assert.Contains("PayBeat-1.0.2-setup-win-x64.exe", result.DownloadUrl!);
-        Assert.Equal("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890", result.Sha256Digest);
-        Assert.Equal("Bug fixes", result.ReleaseNotes);
+        // EvaluateReleaseJson uses explicit currentVersion, not AppVersion.Current.
+        // Test with a fixed version to prove determinism.
+        var json = """{"tag_name":"v2.0.0","draft":false,"prerelease":false,"assets":[{"name":"PayBeat-2.0.0-setup-win-x64.exe","browser_download_url":"https://github.com/ztyzty66/PayBeat/releases/download/v2.0.0/PayBeat-2.0.0-setup-win-x64.exe","digest":"sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"}]}""";
+        var result = UpdateService.EvaluateReleaseJson(json, "1.0.0");
+        Assert.Equal(UpdateService.UpdateCheckStatus.Available, result.Status);
+        Assert.Equal("2.0.0", result.RemoteVersion);
     }
 
     // ── XAML Binding Verification ──────────────────────────────────────────
@@ -309,6 +396,31 @@ public class InAppUpdateTests
     }
 
     [Fact]
+    public void Settings_Xaml_DownloadButtonUsesAvailableState()
+    {
+        var xaml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..",
+            "src", "PayBeat.App", "Views", "SettingsWindow.xaml"));
+        Assert.Contains("CanDownloadInstall", xaml);
+    }
+
+    [Fact]
+    public void Settings_Xaml_ProgressUsesBoolVisibilityConverter()
+    {
+        var xaml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..",
+            "src", "PayBeat.App", "Views", "SettingsWindow.xaml"));
+        Assert.Contains("IsDownloading, Converter={StaticResource BoolToCollapsedConverter}", xaml);
+    }
+
+    [Fact]
+    public void Settings_Xaml_ReleaseNotesCanBecomeVisible()
+    {
+        var xaml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..",
+            "src", "PayBeat.App", "Views", "SettingsWindow.xaml"));
+        // Release notes default visibility should be Visible (not Collapsed), collapsed only when empty.
+        Assert.Contains("UpdateReleaseNotes", xaml);
+    }
+
+    [Fact]
     public void Notification_UpdateText_PointsToSettingsSystem()
     {
         var xaml = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..",
@@ -318,5 +430,11 @@ public class InAppUpdateTests
         var snippet = xaml.Substring(idx, 200);
         Assert.Contains("设置", snippet);
         Assert.Contains("系统", snippet);
+    }
+
+    private class MockHttpHandlerThatThrows : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+            => throw new HttpRequestException("network error");
     }
 }

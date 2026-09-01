@@ -57,7 +57,7 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     private int _downloadProgress;
     private bool _isChecking;
     private bool _isDownloading;
-    private bool _updateAvailable;
+    private bool _hasUpdateAvailable;
     private string? _pendingDownloadUrl;
     private string? _pendingSha256;
 
@@ -122,7 +122,7 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         CancelCommand = new RelayCommand(CloseWindow);
         ManageSchedulesCommand = new RelayCommand(OpenScheduleManager);
         CheckUpdateCommand = new RelayCommand(() => _ = CheckUpdateAsync());
-        DownloadInstallCommand = new RelayCommand(() => _ = DownloadInstallAsync(), () => _updateAvailable);
+        DownloadInstallCommand = new RelayCommand(() => _ = DownloadInstallAsync(), () => CanDownloadInstall);
         RefreshHotkeyStatus();
     }
 
@@ -287,28 +287,49 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
 
     // ── Update logic ───────────────────────────────────────────────────────
 
+    public bool HasUpdateAvailable
+    {
+        get => _hasUpdateAvailable;
+        private set
+        {
+            if (SetField(ref _hasUpdateAvailable, value))
+            {
+                ((RelayCommand)DownloadInstallCommand).RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool CanCheckUpdate => !_isChecking && !_isDownloading;
+    public bool CanDownloadInstall => _hasUpdateAvailable && !_isDownloading && !_isChecking;
+
     public async Task CheckUpdateAsync()
     {
         if (_isChecking || _isDownloading) return;
         IsChecking = true;
         UpdateStatusText = LocalizationService.Get("Settings.Update.Checking");
         UpdateReleaseNotes = "";
-        _updateAvailable = false;
+        HasUpdateAvailable = false;
+        _pendingDownloadUrl = null;
+        _pendingSha256 = null;
         try
         {
-            var result = await _updateService.CheckForUpdateAsync();
-            if (result is { Available: true })
+            var result = await _updateService.CheckForUpdateAsync(AppVersion.Current);
+            switch (result.Status)
             {
-                _updateAvailable = true;
-                _pendingDownloadUrl = result.DownloadUrl;
-                _pendingSha256 = result.Sha256Digest;
-                UpdateStatusText = string.Format(LocalizationService.Get("Settings.Update.Available"), result.RemoteVersion);
-                UpdateReleaseNotes = result.ReleaseNotes ?? "";
-                _mainVm?.NotifyUpdateAvailable(result.RemoteVersion!);
-            }
-            else
-            {
-                UpdateStatusText = LocalizationService.Get("Settings.Update.UpToDate");
+                case UpdateService.UpdateCheckStatus.Available:
+                    HasUpdateAvailable = true;
+                    _pendingDownloadUrl = result.DownloadUrl;
+                    _pendingSha256 = result.Sha256Digest;
+                    UpdateStatusText = string.Format(LocalizationService.Get("Settings.Update.Available"), result.RemoteVersion);
+                    UpdateReleaseNotes = result.ReleaseNotes ?? "";
+                    _mainVm?.NotifyUpdateAvailable(result.RemoteVersion!);
+                    break;
+                case UpdateService.UpdateCheckStatus.UpToDate:
+                    UpdateStatusText = LocalizationService.Get("Settings.Update.UpToDate");
+                    break;
+                case UpdateService.UpdateCheckStatus.Error:
+                    UpdateStatusText = LocalizationService.Get("Settings.Update.Error");
+                    break;
             }
         }
         catch
@@ -325,6 +346,7 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
     {
         if (_isChecking || _isDownloading || _pendingDownloadUrl is null) return;
         IsDownloading = true;
+        HasUpdateAvailable = false;
         DownloadProgress = 0;
         UpdateStatusText = string.Format(LocalizationService.Get("Settings.Update.Downloading"), "");
         try
@@ -335,8 +357,8 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
 
             if (path is null) { UpdateStatusText = LocalizationService.Get("Settings.Update.Error"); return; }
 
-            // SHA256 verification.
-            if (_pendingSha256 is not null && !UpdateService.VerifySha256(path, _pendingSha256))
+            // SHA256 verification — mandatory.
+            if (_pendingSha256 is null || !UpdateService.VerifySha256(path, _pendingSha256))
             {
                 try { File.Delete(path); } catch { }
                 UpdateStatusText = LocalizationService.Get("Settings.Update.VerifyFailed");
@@ -346,7 +368,6 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
             // Launch installer helper.
             if (_updateService.LaunchInstallerAfterExit(path))
             {
-                // Shutdown current app.
                 if (Application.Current is not null)
                     Application.Current.Shutdown();
             }
@@ -365,15 +386,23 @@ public class SettingsViewModel : ViewModelBase, IDataErrorInfo
         }
     }
 
-    /// <summary>Called from App startup for auto-check. Does not notify UI, only fires tray notification.</summary>
+    /// <summary>Called from App startup for auto-check. Non-blocking, fires tray notification only.</summary>
     public async Task AutoCheckUpdateAsync()
     {
         try
         {
-            var result = await _updateService.CheckForUpdateAsync();
-            if (result is { Available: true })
+            var result = await _updateService.CheckForUpdateAsync(AppVersion.Current);
+            if (result.Status == UpdateService.UpdateCheckStatus.Available)
             {
-                _mainVm?.NotifyUpdateAvailable(result.RemoteVersion!);
+                // Marshal notification to UI thread.
+                if (Application.Current?.Dispatcher is { } dispatcher)
+                {
+                    dispatcher.Invoke(() => _mainVm?.NotifyUpdateAvailable(result.RemoteVersion!));
+                }
+                else
+                {
+                    _mainVm?.NotifyUpdateAvailable(result.RemoteVersion!);
+                }
             }
         }
         catch

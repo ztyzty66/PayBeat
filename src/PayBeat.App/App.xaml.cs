@@ -96,9 +96,9 @@ public partial class App
             {
                 try
                 {
-                    var result = await _updateService.CheckForUpdateAsync();
-                    if (result is { Available: true })
-                        _mainVm.NotifyUpdateAvailable(result.RemoteVersion!);
+                    var result = await _updateService.CheckForUpdateAsync(AppVersion.Current);
+                    if (result.Status == UpdateService.UpdateCheckStatus.Available && result.RemoteVersion is not null)
+                        _mainVm.NotifyUpdateAvailable(result.RemoteVersion);
                 }
                 catch { /* silent — auto-check must never break core flow */ }
             }

@@ -659,58 +659,63 @@
                                    FontSize="11.5"
                                    TextWrapping="Wrap"
                                    Margin="0,0,0,6"/>
-                                    <!-- Version + update status -->
-                                    <TextBlock Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,0,0,2">
-                                        <Run Text="{Binding UpdateStatusText, Mode=OneWay, FallbackValue=''}"/>
-                                    </TextBlock>
+                                    <!-- Version display (idle state) -->
                                     <TextBlock Text="{Binding CurrentVersion, Mode=OneWay}"
                                    Foreground="{DynamicResource MutedBrush}"
+                                   FontSize="11" Margin="0,0,0,2">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UpdateStatusText}" Value="">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding UpdateStatusText}" Value="">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <!-- Update status text -->
+                                    <TextBlock Text="{Binding UpdateStatusText, Mode=OneWay}"
+                                   Foreground="{DynamicResource AmberBrush}"
                                    FontSize="11" Margin="0,0,0,6">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding UpdateStatusText}" Value="">
-                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
-                                    <!-- Check for updates button -->
+                                    <!-- Check for updates button (visible when idle, hidden when checking/downloading) -->
                                     <Button Content="{DynamicResource Settings.Update.CheckButton}"
                                             Command="{Binding CheckUpdateCommand}"
                                             Background="{DynamicResource SurfaceBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             Padding="10,5" Margin="0,0,0,6"
-                                            HorizontalAlignment="Left">
-                                        <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsChecking}" Value="True">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
-                                    <!-- Download progress -->
-                                    <StackPanel Visibility="{Binding IsDownloading, Mode=OneWay}">
+                                            HorizontalAlignment="Left"
+                                            Visibility="{Binding CanCheckUpdate, Converter={StaticResource BoolToCollapsedConverter}}"/>
+                                    <!-- Download progress (visible only when downloading) -->
+                                    <StackPanel Visibility="{Binding IsDownloading, Converter={StaticResource BoolToCollapsedConverter}}">
                                         <ProgressBar Value="{Binding DownloadProgress, Mode=OneWay}"
                                                      Maximum="100" Height="6" Margin="0,0,0,4"/>
                                         <TextBlock Text="{Binding UpdateStatusText, Mode=OneWay}"
                                                    Foreground="{DynamicResource SubtextBrush}" FontSize="11"/>
                                     </StackPanel>
-                                    <!-- Download + install button (when update available) -->
+                                    <!-- Download + install button (visible when available, not downloading) -->
                                     <Button Content="{DynamicResource Settings.Update.DownloadButton}"
                                             Command="{Binding DownloadInstallCommand}"
                                             Background="{DynamicResource SurfaceBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             Padding="10,5" Margin="0,0,0,6"
                                             HorizontalAlignment="Left"
-                                            Visibility="{Binding IsDownloading, Mode=OneWay, Converter={StaticResource BoolToCollapsedConverter}}"/>
-                                    <!-- Release notes -->
+                                            Visibility="{Binding CanDownloadInstall, Converter={StaticResource BoolToCollapsedConverter}}"/>
+                                    <!-- Release notes (visible when non-empty) -->
                                     <TextBlock Text="{Binding UpdateReleaseNotes, Mode=OneWay}"
                                    Foreground="{DynamicResource SubtextBrush}"
                                    FontSize="10.5"
@@ -719,7 +724,7 @@
                                    Margin="0,0,0,6">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Setter Property="Visibility" Value="Visible"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding UpdateReleaseNotes}" Value="">
                                                         <Setter Property="Visibility" Value="Collapsed"/>

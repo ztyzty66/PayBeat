@@ -159,6 +159,10 @@ public partial class App
         _settingsService = new SettingsService(dataDir);
         var historyService = new HistoryService(Path.Combine(dataDir, "history"));
         _store = new ConfigurationStore(_settingsService, historyService);
+
+        // Backfill any missed history days (crash recovery, multi-day gap).
+        HistoryBackfillService.Backfill(historyService, _store.CurrentConfiguration, DateOnly.FromDateTime(DateTime.Now));
+
         var settings = _store.CurrentSettings;
         _startupSettings = settings;
         LocalizationService.Apply(settings.Language);

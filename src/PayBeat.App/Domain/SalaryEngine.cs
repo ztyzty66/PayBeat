@@ -187,10 +187,10 @@ public static class SalaryEngine
             }
 
             // "Passed" workdays drive the 15/26-style progress: planned workdays strictly before today.
-            // Today is NOT counted as "passed" until it completes (via exit snapshot or rollover).
+            // Uses ResolvePlannedStatus so that Leave and PTO days still count as "passed planned
+            // workdays" — they don't change the denominator. Only the final status differs.
             if (date < today
-                && day.Status is DayStatus.Work or DayStatus.MakeupWork
-                && day.LeaveSeconds < day.TotalEffectiveSeconds)
+                && config.ResolvePlannedStatus(date) is DayStatus.Work or DayStatus.MakeupWork)
             {
                 passedWorkdays++;
             }

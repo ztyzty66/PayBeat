@@ -55,9 +55,9 @@ public static class ScheduleVersioning
 
         if (existing.EffectiveFrom < today)
         {
-            // Historical: never rewrite — keep original, append new version with fresh Id.
-            // Do NOT use Upsert (it replaces by date) or DeduplicateByDate (it drops the original).
-            var updated = edited with { Id = Guid.NewGuid().ToString("N") };
+            // Historical: never rewrite — keep original, create new version effective from today.
+            // The user's edit applies from today onward; past dates keep the original.
+            var updated = edited with { Id = Guid.NewGuid().ToString("N"), EffectiveFrom = today };
             var result = new List<WorkScheduleProfile>(schedules) { updated };
             return result;
         }

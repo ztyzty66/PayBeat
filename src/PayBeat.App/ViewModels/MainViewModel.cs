@@ -169,16 +169,32 @@ public class MainViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
-    /// Takes an idempotent exit snapshot of the current day. Called from App.OnExit
-    /// so that history is recorded even if the app closes before midnight rollover.
-    /// Duplicate calls for the same day are safe (RecordDay is an upsert by date key).
+    /// Takes an idempotent exit snapshot of the current day, but ONLY if the day
+    /// has reached a finalized state. Called from App.OnExit so that history is
+    /// recorded even if the app closes before midnight rollover.
+    ///
+    /// Finalized means:
+    ///   - Rest / PublicHoliday / PaidTimeOff (result is fully determined)
+    ///   - Current time >= today's effective WorkEnd (work is done)
+    ///
+    /// If the day is still in BeforeWork / Working / Lunch phase, we do NOT
+    /// snapshot a fake "full day" — the data would be wrong.
     /// </summary>
     public void ExitSnapshot()
     {
         try
         {
             var today = DateOnly.FromDateTime(DateTime.Now);
+            var now = TimeOnly.FromDateTime(DateTime.Now);
             var day = SalaryEngine.ComputeDay(_config, today);
+            var schedule = day.Schedule;
+
+            bool isFinalized = day.Status is DayStatus.Rest or DayStatus.PublicHoliday or DayStatus.PaidTimeOff
+                || (day.Status is DayStatus.Work or DayStatus.MakeupWork or DayStatus.Leave
+                    && now >= schedule.WorkEnd);
+
+            if (!isFinalized) return;
+
             _store.PayData.SnapshotDay(day, _config, _config.PlannedWorkdays(today));
             var lastOfMonth = new DateOnly(today.Year, today.Month, DateTime.DaysInMonth(today.Year, today.Month));
             if (today == lastOfMonth) FinalizeMonth(today);
@@ -331,7 +347,20 @@ public class MainViewModel : ViewModelBase, IDisposable
             return;
         }
 
-        OnDayRollover(_notifiedDate, today);
+        if (today > _notifiedDate)
+        {
+            // Forward rollover: iterate each completed day individually so every
+            // intermediate day gets its own snapshot and month finalization.
+            var completedDay = _notifiedDate;
+            while (completedDay < today)
+            {
+                OnDayRollover(completedDay, completedDay.AddDays(1));
+                completedDay = completedDay.AddDays(1);
+            }
+        }
+        // Clock rollback (today < _notifiedDate): do NOT snapshot future dates.
+        // Just update the notified date and rebuild UI state.
+
         _notifiedDate = today;
         _nextMilestoneThreshold = _settings.MilestoneAmount;
         _endOfDayReminderSent = false;
@@ -484,12 +513,30 @@ public class MainViewModel : ViewModelBase, IDisposable
     {
         _wakeTimer?.Stop();
         var current = TimeOnly.FromDateTime(now);
-        var schedule = _today.Computation.Schedule;
-        var nextStart = current < schedule.WorkStart
-            ? now.Date + schedule.WorkStart.ToTimeSpan()
-            : now.Date.AddDays(1) + schedule.WorkStart.ToTimeSpan();
-        var delay = nextStart - now;
-        if (delay > TimeSpan.FromDays(1)) delay = TimeSpan.FromDays(1);
+
+        // Wake boundary = min(next midnight, next relevant work-start).
+        // Next midnight ensures CheckDateRoll fires even on rest days.
+        var nextMidnight = now.Date.AddDays(1);
+
+        // Next relevant work-start must use the NEXT DAY's resolved schedule,
+        // not today's schedule — otherwise a schedule change at 00:00 is missed.
+        var nextDay = now.Date.AddDays(1);
+        var nextDaySchedule = _config.ResolveSchedule(DateOnly.FromDateTime(nextDay));
+        var nextWorkStart = nextDay + nextDaySchedule.WorkStart.ToTimeSpan();
+
+        // If next day's WorkStart has already passed (shouldn't happen at midnight,
+        // but guard), fall back to the day after.
+        if (nextWorkStart <= now)
+        {
+            nextDay = now.Date.AddDays(2);
+            nextDaySchedule = _config.ResolveSchedule(DateOnly.FromDateTime(nextDay));
+            nextWorkStart = nextDay + nextDaySchedule.WorkStart.ToTimeSpan();
+        }
+
+        var wakeBoundary = nextMidnight < nextWorkStart ? nextMidnight : nextWorkStart;
+        var delay = wakeBoundary - now;
+        if (delay <= TimeSpan.Zero) delay = TimeSpan.FromMinutes(1);
+
         _wakeTimer = new DispatcherTimer { Interval = delay };
         _wakeTimer.Tick += (_, _) => { _wakeTimer!.Stop(); _wakeTimer = null; _timer.Start(); Refresh(); };
         _wakeTimer.Start();

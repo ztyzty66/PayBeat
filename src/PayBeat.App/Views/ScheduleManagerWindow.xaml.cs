@@ -84,9 +84,11 @@ public partial class ScheduleManagerWindow
         EffectiveFromBox.Text = schedule.EffectiveFrom.ToString("yyyy-MM-dd");
         var today = DateOnly.FromDateTime(DateTime.Now);
         var isHistorical = schedule.EffectiveFrom < today;
-        // An unsaved in-window draft or historical version cannot be activated or deleted.
+        // Delete is blocked for historical versions (immutable) and active/pending schedules.
         DeleteButton.IsEnabled = !isActive && !isPending && !isHistorical;
-        ActivateButton.IsEnabled = !isActive && !isPending && !isHistorical;
+        // Activate is allowed on historical versions ("re-enable from today") but blocked
+        // for the currently active schedule and unsaved pending entries.
+        ActivateButton.IsEnabled = !isActive && !isPending;
         CurrentLabel.Visibility = isActive ? Visibility.Visible : Visibility.Collapsed;
         FormError.Text = "";
     }

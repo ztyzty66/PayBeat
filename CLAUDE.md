@@ -35,15 +35,15 @@ WPF floating widget app (.NET 10, MVVM). Shows real-time earnings as a borderles
 **Display modes:** `DisplayMode` has `None`, `Normal`, `Mini`, and `Flex`, swapped inside a single `MainWindow` via `DataTemplate` + `DataTrigger`. Each mode saves its last position independently per screen. `Flex` is a fullscreen "show-off" view with a huge earnings figure and animated background.
 
 **Key entry points:**
-- `App.xaml.cs` — owns the object graph (`ConfigurationStore`, `MainViewModel`, `MainWindow`, `HotkeyService`, `TrayIconService`); enforces single-instance via a named `Mutex`; saves window position and takes exit snapshot on exit.
-- `MainViewModel.cs` — owns the `DispatcherTimer` and all earnings/display state; `CheckDateRoll()` handles midnight rollover, sleep/resume, and clock changes; `ExitSnapshot()` ensures history is recorded on app exit.
+- `App.xaml.cs` — owns the object graph (`ConfigurationStore`, `MainViewModel`, `MainWindow`, `HotkeyService`, `TrayIconService`); enforces single-instance via a named `Mutex`; saves window position via `CommitSettingsOnly`; runs `HistoryBackfillService.Backfill()` at startup; takes exit snapshot on exit.
+- `MainViewModel.cs` — owns the `DispatcherTimer` and all earnings/display state; `CheckDateRoll()` iterates each missed day individually for multi-day gap recovery; `ScheduleWakeTimer()` computes `min(midnight, next day's WorkStart)` so schedule changes at 00:00 are never missed; `ExitSnapshot()` only finalizes days that are truly completed (time >= WorkEnd, or rest/holiday/PTO).
 - `MainWindow.xaml` — borderless `Window` with a `ContentControl` that switches view templates via `DataTrigger` on `DisplayMode`.
 
 **ConfigurationStore (single source of truth):**
 - `ConfigurationStore` is the canonical runtime state. ViewModels read from `CurrentSettings`/`CurrentConfiguration`.
 - All writes flow through `Commit(settings)` which atomically persists and rebuilds in-memory state.
 - `CommitSettingsOnly(settings)` is a lightweight persistence-only update (for window position) that skips hotkey re-registration and full UI rebuilds.
-- `CreateDraft()` returns a `ConfigurationDraft` — a mutable snapshot with defensive-copy getters that prevent in-place mutation of the store's internal collections.
+- `CreateDraft()` returns a `ConfigurationDraft` — a deep clone with `SalarySettings.DeepClone()` in the constructor, so draft mutations never affect the store.
 
 **Versioned profiles:**
 - `SalaryProfile`, `WorkScheduleProfile`, `WorkWeekPolicy` each carry an `EffectiveFrom` date.
@@ -54,7 +54,9 @@ WPF floating widget app (.NET 10, MVVM). Shows real-time earnings as a borderles
 
 **Schedule history immutability:**
 - `ScheduleVersioning` (Domain layer) provides `Activate`, `Edit`, `Delete` as pure functions.
-- Historical versions (`EffectiveFrom < today`): never edited or deleted in-place; new versions are created with fresh Ids.
+- Historical versions (`EffectiveFrom < today`): never edited or deleted in-place; new versions are created with fresh Ids and `EffectiveFrom = today`.
+- Activate on historical versions is allowed ("re-enable from today") — creates a new today-dated version.
+- Delete is blocked for historical and active schedules; allowed for future versions.
 - Today versions: can be edited in-place.
 - Future versions: can be edited or deleted.
 
@@ -66,14 +68,16 @@ WPF floating widget app (.NET 10, MVVM). Shows real-time earnings as a borderles
 
 **History and snapshots:**
 - `HistoryService` persists per-day and per-month history snapshots to `%APPDATA%\今日薪动\history\`.
-- `MainViewModel.OnDayRollover()` snapshots the completed day on date change.
-- `MainViewModel.ExitSnapshot()` takes an idempotent snapshot on app exit (safe for duplicate calls).
+- `MainViewModel.CheckDateRoll()` iterates each missed day individually (multi-day gap recovery, month-boundary finalization).
+- `MainViewModel.ExitSnapshot()` only finalizes days that are truly completed (time >= WorkEnd, or rest/holiday/PTO). Never writes fake "full day" for days still in progress.
+- `HistoryBackfillService.Backfill()` runs at startup to fill any gap between the latest recorded date and yesterday. Idempotent, uses each day's effective configuration.
 - `MonthHistory.PassedWorkdaysSnapshot` stores the passed workday count at finalization.
-- `DetailWindow` uses `PassedWorkdaysSnapshot` with fallback to `Days.Count` for old history files.
+- `DetailWindow` uses `PassedWorkdaysSnapshot`; shows "--" for old files that lack it (never uses `Days.Count`).
 
 **AppData paths:**
 - `AppPaths` provides the single source of truth: `DataRoot` = `%APPDATA%\今日薪动`.
-- `AppDataMigration` handles resumable migration from legacy `%APPDATA%\PayBeat` using a `.migration-v1-complete` marker.
+- `AppDataMigration` handles resumable, non-destructive migration from legacy `%APPDATA%\PayBeat` using a `.migration-v1-complete` marker. New-data-wins: existing destination settings are never overwritten by legacy.
+- `SettingsService.Migrate()` normalizes duplicate EffectiveFrom entries via `ProfileVersioning.Normalize()` on every load.
 - All services (`SettingsService`, `HistoryService`, `AppLogger`) resolve paths from `AppPaths`.
 
 **Models:**

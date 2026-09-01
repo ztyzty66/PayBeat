@@ -60,12 +60,12 @@ public static class AppDataMigration
     {
         Directory.CreateDirectory(destination);
 
-        // Copy settings.json (always overwrite at destination if source is newer — resumable).
+        // Copy settings.json — NEVER overwrite if destination already has one (new-data-wins).
         var settingsSrc = Path.Combine(source, "settings.json");
         var settingsDst = Path.Combine(destination, "settings.json");
-        if (File.Exists(settingsSrc))
+        if (File.Exists(settingsSrc) && !File.Exists(settingsDst))
         {
-            File.Copy(settingsSrc, settingsDst, overwrite: true);
+            File.Copy(settingsSrc, settingsDst);
         }
 
         // Copy history directory (skip files that already exist at destination).

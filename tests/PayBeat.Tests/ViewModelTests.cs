@@ -80,7 +80,10 @@ public class ViewModelTests : IDisposable
         // VM initialized from store/draft state (default schedule 09:00-18:00)
         Assert.Equal(new TimeOnly(9, 0), vm.WorkStart);
         Assert.Equal(new TimeOnly(18, 0), vm.WorkEnd);
-        Assert.Same(store.CurrentSettings, vm.Draft.Base);
+        // Draft base is a deep clone — scalar values match the store.
+        Assert.Equal(store.CurrentSettings.DisplayMode, vm.Draft.Base.DisplayMode);
+        Assert.Equal(store.CurrentSettings.Language, vm.Draft.Base.Language);
+        Assert.Equal(store.CurrentSettings.Theme, vm.Draft.Base.Theme);
 
         // Mutate the draft the way ScheduleManager does — VM must follow the draft, not disk
         var today = DateOnly.FromDateTime(DateTime.Now);

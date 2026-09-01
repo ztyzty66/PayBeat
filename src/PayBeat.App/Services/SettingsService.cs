@@ -106,56 +106,70 @@ public class SettingsService
     /// </summary>
     public static SalarySettings Migrate(SalarySettings s)
     {
-        if (s.ConfigVersion >= 3)
-        {
-            return s;
-        }
+        SalarySettings result = s;
 
-        if (s.ConfigVersion == 2)
+        if (s.ConfigVersion == 1)
         {
-            return s with { ConfigVersion = 3 };
-        }
-
-        // v1 → v3
-        var salaryProfile = new SalaryProfile
-        {
-            Mode = SalaryMode.Daily,
-            DailyAmount = s.DailySalary,
-            MonthlyAmount = 0m,
-            EffectiveFrom = new DateOnly(2000, 1, 1),
-        };
-
-        var schedule = new WorkScheduleProfile
-        {
-            Id = PayConfiguration.DefaultScheduleId,
-            Name = s.LegacyScheduleName,
-            WorkStart = s.WorkStart,
-            WorkEnd = s.WorkEnd,
-            LunchBreakEnabled = s.LunchBreakEnabled,
-            LunchBreakStart = s.LunchBreakStart,
-            LunchBreakEnd = s.LunchBreakEnd,
-            EffectiveFrom = new DateOnly(2000, 1, 1),
-        };
-
-        var policy = s.WorkOnWeekends
-            ? new WorkWeekPolicy
+            // v1 → v3: full transformation
+            var salaryProfile = new SalaryProfile
             {
-                Type = WorkWeekType.Custom,
-                WorkDays = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday],
+                Mode = SalaryMode.Daily,
+                DailyAmount = s.DailySalary,
+                MonthlyAmount = 0m,
                 EffectiveFrom = new DateOnly(2000, 1, 1),
-            }
-            : WorkWeekPolicy.Create(WorkWeekType.DoubleRest, new DateOnly(2000, 1, 1));
+            };
 
-        return s with
+            var schedule = new WorkScheduleProfile
+            {
+                Id = PayConfiguration.DefaultScheduleId,
+                Name = s.LegacyScheduleName,
+                WorkStart = s.WorkStart,
+                WorkEnd = s.WorkEnd,
+                LunchBreakEnabled = s.LunchBreakEnabled,
+                LunchBreakStart = s.LunchBreakStart,
+                LunchBreakEnd = s.LunchBreakEnd,
+                EffectiveFrom = new DateOnly(2000, 1, 1),
+            };
+
+            var policy = s.WorkOnWeekends
+                ? new WorkWeekPolicy
+                {
+                    Type = WorkWeekType.Custom,
+                    WorkDays = [DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday],
+                    EffectiveFrom = new DateOnly(2000, 1, 1),
+                }
+                : WorkWeekPolicy.Create(WorkWeekType.DoubleRest, new DateOnly(2000, 1, 1));
+
+            result = s with
+            {
+                ConfigVersion = 3,
+                SalaryProfiles = [salaryProfile],
+                ScheduleProfiles = [schedule],
+                WeekPolicies = [policy],
+                SetupCompleted = true,
+                LegacyScheduleName = s.LegacyScheduleName,
+            };
+        }
+        else if (s.ConfigVersion == 2)
         {
-            ConfigVersion = 3,
-            SalaryProfiles = [salaryProfile],
-            ScheduleProfiles = [schedule],
-            WeekPolicies = [policy],
-            SetupCompleted = true,
-            LegacyScheduleName = s.LegacyScheduleName,
-        };
+            result = s with { ConfigVersion = 3 };
+        }
+
+        // Always normalize: deduplicate same-date profiles (last-write-wins) so
+        // dirty data from any schema version enters runtime in a clean state.
+        return Normalize(result);
     }
+
+    /// <summary>
+    /// Deduplicates versioned profile collections so that at most one entry per
+    /// EffectiveFrom date remains (last-write-wins, deterministic).
+    /// </summary>
+    private static SalarySettings Normalize(SalarySettings s) => s with
+    {
+        SalaryProfiles = ProfileVersioning.Normalize(s.SalaryProfiles, p => p.EffectiveFrom),
+        ScheduleProfiles = ProfileVersioning.Normalize(s.ScheduleProfiles, p => p.EffectiveFrom),
+        WeekPolicies = ProfileVersioning.Normalize(s.WeekPolicies, p => p.EffectiveFrom),
+    };
 
     private void BackupCorruptFile()
     {

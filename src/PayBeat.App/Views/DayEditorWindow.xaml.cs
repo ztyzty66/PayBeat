@@ -16,6 +16,7 @@ public partial class DayEditorWindow
     public record EditorResult(bool Clear, CalendarOverride Override);
 
     private readonly DateOnly _date;
+    private readonly PayConfiguration? _config;
 
     /// <summary>Result after the dialog closes; <see langword="null"/> when cancelled.</summary>
     public EditorResult? Result { get; private set; }
@@ -27,6 +28,7 @@ public partial class DayEditorWindow
     {
         InitializeComponent();
         _date = date;
+        _config = config;
         EditorTitle.Text = string.Format(LocalizationService.Get("Calendar.DayEditor"), date.Month, date.Day);
         Owner = Application.Current.Windows.OfType<SettingsWindow>().FirstOrDefault();
 
@@ -135,6 +137,16 @@ public partial class DayEditorWindow
             var leave = kind == LeaveKind.Hours
                 ? new LeaveRecord(LeaveKind.Hours, LeaveStart.SelectedTime, LeaveEnd.SelectedTime)
                 : new LeaveRecord(kind);
+
+            // Validate hourly leave against the effective schedule.
+            var schedule = _config?.ResolveSchedule(_date) ?? new WorkScheduleProfile();
+            var error = leave.Validate(schedule, LocalizationService.Get);
+            if (error is not null)
+            {
+                MessageBox.Show(error, "今日薪动", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             Result = new EditorResult(false, CalendarOverride.LeaveOverride(_date, leave));
         }
         else

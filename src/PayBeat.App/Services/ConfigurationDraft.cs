@@ -15,7 +15,7 @@ public class ConfigurationDraft
 
     public ConfigurationDraft(SalarySettings baseSettings)
     {
-        _base = baseSettings;
+        _base = baseSettings.DeepClone();
     }
 
     /// <summary>
@@ -28,8 +28,9 @@ public class ConfigurationDraft
     /// <summary>Raises <see cref="Changed"/> after a draft mutation.</summary>
     public void RaiseChanged() => Changed?.Invoke();
 
-    /// <summary>The underlying settings being edited.</summary>
-    public SalarySettings Base => _base;
+    /// <summary>Returns a deep snapshot of the underlying settings. Callers must not
+    /// mutate the returned object — use the property setters instead.</summary>
+    public SalarySettings Base => _base.DeepClone();
 
     /// <summary>Current salary profiles. Returns a defensive copy to prevent in-place mutation.</summary>
     public List<SalaryProfile> SalaryProfiles
@@ -164,8 +165,8 @@ public class ConfigurationDraft
         set => _base = _base with { LegacyScheduleName = value };
     }
 
-    /// <summary>Returns the underlying settings for persistence.</summary>
-    public SalarySettings ToSettings() => _base;
+    /// <summary>Returns a deep snapshot of the settings for persistence.</summary>
+    public SalarySettings ToSettings() => _base.DeepClone();
 
     /// <summary>
     /// Replaces the underlying settings entirely (used when loading from store after

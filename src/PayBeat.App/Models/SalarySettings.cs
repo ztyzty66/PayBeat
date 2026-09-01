@@ -189,4 +189,49 @@ public record SalarySettings
 
     /// <summary>Display name carried over for the legacy (migrated) schedule profile.</summary>
     public string LegacyScheduleName { get; init; } = "";
+
+    /// <summary>
+    /// Creates a true deep clone of this settings instance. All nested mutable collections
+    /// (lists, dictionaries, HashSets inside WorkWeekPolicy) are cloned so that the caller
+    /// can safely mutate them without affecting the original.
+    /// </summary>
+    public SalarySettings DeepClone() => new()
+    {
+        DailySalary = DailySalary,
+        WorkStart = WorkStart,
+        WorkEnd = WorkEnd,
+        Currency = Currency,
+        DisplayMode = DisplayMode,
+        AlwaysOnTop = AlwaysOnTop,
+        RefreshInterval = RefreshInterval,
+        Opacity = Opacity,
+        Language = Language,
+        HotkeyModifiers = HotkeyModifiers,
+        HotkeyVirtualKey = HotkeyVirtualKey,
+        NormalPosition = NormalPosition,
+        MiniPosition = MiniPosition,
+        FlexPosition = FlexPosition,
+        LunchBreakEnabled = LunchBreakEnabled,
+        LunchBreakStart = LunchBreakStart,
+        LunchBreakEnd = LunchBreakEnd,
+        WorkOnWeekends = WorkOnWeekends,
+        EnableEndOfDayReminder = EnableEndOfDayReminder,
+        EndOfDayReminderMinutes = EndOfDayReminderMinutes,
+        EnableMilestoneNotifications = EnableMilestoneNotifications,
+        MilestoneAmount = MilestoneAmount,
+        Theme = Theme,
+        LastUpdateCheckUtc = LastUpdateCheckUtc,
+        ConfigVersion = ConfigVersion,
+        SalaryProfiles = new List<Domain.SalaryProfile>(SalaryProfiles),
+        ScheduleProfiles = new List<Domain.WorkScheduleProfile>(ScheduleProfiles),
+        WeekPolicies = WeekPolicies.Select(wp => new Domain.WorkWeekPolicy
+        {
+            Type = wp.Type,
+            WorkDays = new HashSet<DayOfWeek>(wp.WorkDays),
+            EffectiveFrom = wp.EffectiveFrom,
+        }).ToList(),
+        Overrides = new Dictionary<string, Domain.CalendarOverride>(Overrides),
+        SetupCompleted = SetupCompleted,
+        LegacyScheduleName = LegacyScheduleName,
+    };
 }
